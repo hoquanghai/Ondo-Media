@@ -86,7 +86,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!APP.ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    if (!(APP.ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) {
       toast({
         title: "エラー",
         description: "JPEG、PNG、GIF、WebP形式の画像を選択してください",

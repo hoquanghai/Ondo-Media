@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AnnouncementService } from './announcement.service';
 import { MESSAGE_PATTERNS } from '@app/common';
 
@@ -8,37 +8,37 @@ export class AnnouncementController {
   constructor(private readonly announcementService: AnnouncementService) {}
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_CREATE)
-  async create(data: any) {
+  async create(@Payload() data: any) {
     return this.announcementService.create(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_FIND_ALL)
-  async findAll(data: any) {
+  async findAll(@Payload() data: any) {
     return this.announcementService.findAll(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_FIND_BY_ID)
-  async findById(data: any) {
+  async findById(@Payload() data: any) {
     return this.announcementService.findById(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_UPDATE)
-  async update(data: any) {
+  async update(@Payload() data: any) {
     return this.announcementService.update(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_DELETE)
-  async delete(data: any) {
+  async delete(@Payload() data: any) {
     return this.announcementService.delete(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_MARK_READ)
-  async markRead(data: any) {
+  async markRead(@Payload() data: any) {
     return this.announcementService.markRead(data);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.ANNOUNCEMENT_UNREAD_COUNT)
-  async unreadCount(data: any) {
+  async unreadCount(@Payload() data: any) {
     return this.announcementService.unreadCount(data);
   }
 }

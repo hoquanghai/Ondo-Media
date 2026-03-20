@@ -91,6 +91,37 @@ export class PostService {
     });
   }
 
+  /**
+   * Enrich comments with author info from DR.dbo.shainList
+   */
+  private async enrichCommentsWithAuthors(comments: any[]): Promise<any[]> {
+    if (comments.length === 0) return [];
+    const userIds = [...new Set(comments.map(c => c.userId))];
+    const users = await this.userRepo.findBy(userIds.map(id => ({ shainBangou: id })));
+    const userMap = new Map(users.map(u => [u.shainBangou, u]));
+
+    return comments.map(comment => {
+      const author = userMap.get(comment.userId);
+      return {
+        ...comment,
+        author: author ? {
+          shainBangou: author.shainBangou,
+          lastNumber: author.lastNumber,
+          shainName: author.displayName,
+          shainGroup: author.department,
+          avatar: author.defaultAvatarUrl,
+          snsAvatarUrl: author.snsAvatarUrl,
+        } : {
+          shainBangou: comment.userId,
+          shainName: `社員${comment.userId}`,
+          shainGroup: '',
+          avatar: null,
+          snsAvatarUrl: null,
+        },
+      };
+    });
+  }
+
   // ─── Post CRUD ───
 
   async create(data: {
@@ -240,6 +271,12 @@ export class PostService {
     }
 
     const [enriched] = await this.enrichWithAuthors([post]);
+
+    // Enrich comments with author info
+    if (enriched.comments && enriched.comments.length > 0) {
+      enriched.comments = await this.enrichCommentsWithAuthors(enriched.comments);
+    }
+
     return { ...enriched, isLikedByMe, myReactionType };
   }
 
@@ -468,6 +505,8 @@ export class PostService {
       where: { id: saved.id },
     });
 
+    const [enrichedComment] = await this.enrichCommentsWithAuthors([fullComment]);
+
     // Fire-and-forget: event is for realtime updates, not critical to the response
     this.events.publish(EVENTS.COMMENT_CREATED, {
       postId: data.postId,
@@ -475,10 +514,10 @@ export class PostService {
       authorId: data.userId,
       postAuthorId: post.userId,
       commentCount: actualCount,
-      comment: fullComment,
+      comment: enrichedComment,
     }).catch(() => {});
 
-    return fullComment;
+    return enrichedComment;
   }
 
   async findComments(data: {
@@ -496,7 +535,8 @@ export class PostService {
       order: { createdAt: 'ASC' },
     });
 
-    return PaginatedResponseDto.from(items, total, page, limit);
+    const enrichedItems = await this.enrichCommentsWithAuthors(items);
+    return PaginatedResponseDto.from(enrichedItems, total, page, limit);
   }
 
   async updateComment(data: {
