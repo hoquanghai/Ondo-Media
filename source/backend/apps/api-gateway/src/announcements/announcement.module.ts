@@ -15,7 +15,7 @@ import { AnnouncementGatewayController } from './announcement.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('ANNOUNCEMENT_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('ANNOUNCEMENT_SERVICE_PORT', '3004'), 10),
+            port: parseInt(config.get<string>('ANNOUNCEMENT_SERVICE_PORT', '3014'), 10),
           },
         }),
       },

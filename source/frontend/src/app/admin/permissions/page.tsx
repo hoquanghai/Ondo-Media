@@ -32,7 +32,7 @@ export default function AdminPermissionsPage() {
       return {
         ...prev,
         users: prev.users.map((u) =>
-          u.userId === userId
+          u.shainBangou === userId
             ? {
                 ...u,
                 permissions: hasPermission

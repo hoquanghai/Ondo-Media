@@ -29,11 +29,17 @@ export class AuthController {
   @Public()
   @ApiOperation({ summary: '社員番号でログイン' })
   async login(
-    @Body() body: { shainBangou: number; password?: string; rememberMe?: boolean },
+    @Body() body: { lastNumber: number; password?: string; rememberMe?: boolean },
   ) {
-    return firstValueFrom(
-      this.authClient.send(MESSAGE_PATTERNS.AUTH_LOGIN, body),
-    );
+    try {
+      const result = await firstValueFrom(
+        this.authClient.send(MESSAGE_PATTERNS.AUTH_LOGIN, body),
+      );
+      return result;
+    } catch (error) {
+      console.error('Login error:', error?.message || error);
+      throw error;
+    }
   }
 
   @Post('login/microsoft')

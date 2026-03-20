@@ -39,6 +39,24 @@ export class User {
   @Column({ name: 'shainShigotoJoutai', type: 'nvarchar', length: 255, nullable: true })
   shainShigotoJoutai: string;
 
+  @Column({ name: 'birthday', type: 'date', nullable: true })
+  birthday: string;
+
+  @Column({ name: 'address1', type: 'nvarchar', nullable: true })
+  address1: string;
+
+  @Column({ name: 'phone', type: 'nvarchar', length: 255, nullable: true })
+  phone: string;
+
+  @Column({ name: 'mobile', type: 'nvarchar', length: 255, nullable: true })
+  mobile: string;
+
+  @Column({ name: 'entranceDate', type: 'date', nullable: true })
+  entranceDate: string;
+
+  @Column({ name: 'lastNumber', type: 'int', nullable: true })
+  lastNumber: number;
+
   @Column({ name: 'avatar', type: 'nvarchar', length: 255, nullable: true })
   avatar: string;
 
@@ -81,7 +99,15 @@ export class User {
   }
 
   get avatarUrl(): string | null {
-    return this.snsAvatarUrl || this.avatar || null;
+    // Priority: 1) custom SNS avatar → 2) CDN default from lastNumber → 3) legacy avatar
+    if (this.snsAvatarUrl) return this.snsAvatarUrl;
+    if (this.lastNumber) return `https://ondo-metal.sgp1.cdn.digitaloceanspaces.com/avatars/${this.lastNumber}.jpg`;
+    return this.avatar || null;
+  }
+
+  get defaultAvatarUrl(): string | null {
+    if (this.lastNumber) return `https://ondo-metal.sgp1.cdn.digitaloceanspaces.com/avatars/${this.lastNumber}.jpg`;
+    return this.avatar || null;
   }
 
   get bio(): string | null {

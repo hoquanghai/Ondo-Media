@@ -117,6 +117,15 @@ export class UserService {
 
   async updateProfile(data: {
     id: number;
+    shainName?: string;
+    email?: string;
+    phone?: string;
+    mobile?: string;
+    birthday?: string;
+    address1?: string;
+    snsBio?: string;
+    snsAvatarUrl?: string;
+    // legacy field names for backward compatibility
     displayName?: string;
     bio?: string;
     avatarUrl?: string;
@@ -128,12 +137,34 @@ export class UserService {
       throw new RpcException({ statusCode: 404, message: 'ユーザーが見つかりません' });
     }
 
-    if (data.displayName !== undefined) user.shainName = data.displayName;
-    if (data.bio !== undefined) user.snsBio = data.bio;
-    if (data.avatarUrl !== undefined) user.snsAvatarUrl = data.avatarUrl;
+    // Build update object with only changed fields
+    const updateData: Record<string, any> = {};
 
-    const saved = await this.userRepo.save(user);
-    return this.sanitizeUser(saved);
+    const name = data.shainName ?? data.displayName;
+    if (name !== undefined) updateData.shainName = name;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.mobile !== undefined) updateData.mobile = data.mobile;
+    if (data.birthday !== undefined) updateData.birthday = data.birthday;
+    if (data.address1 !== undefined) updateData.address1 = data.address1;
+
+    const bio = data.snsBio ?? data.bio;
+    if (bio !== undefined) updateData.snsBio = bio;
+
+    const avatar = data.snsAvatarUrl ?? data.avatarUrl;
+    if (avatar !== undefined) updateData.snsAvatarUrl = avatar;
+
+    if (Object.keys(updateData).length === 0) {
+      return this.sanitizeUser(user);
+    }
+
+    await this.userRepo.update({ shainBangou: data.id }, updateData);
+
+    // Fetch updated user
+    const updated = await this.userRepo.findOne({
+      where: { shainBangou: data.id },
+    });
+    return this.sanitizeUser(updated!);
   }
 
   async adminUpdate(data: {
@@ -183,92 +214,101 @@ export class UserService {
 
   async getStats(data: { userId: number }) {
     const userId = data.userId;
-
-    // Total posts
-    const totalPosts = await this.postRepo.count({
-      where: { userId, isDeleted: false },
-    });
-
-    // Posts this month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const postsThisMonth = await this.postRepo
-      .createQueryBuilder('post')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('post.is_deleted = :isDel', { isDel: false })
-      .andWhere('post.post_date >= :start', {
-        start: startOfMonth.toISOString().split('T')[0],
-      })
-      .getCount();
+    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+    const todayStr = now.toISOString().split('T')[0];
 
-    // Active days in last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const activeDaysRows = await this.postRepo
-      .createQueryBuilder('post')
-      .select('CAST(post.post_date AS DATE)', 'postDay')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('post.is_deleted = :isDel', { isDel: false })
-      .andWhere('post.post_date >= :start', {
-        start: thirtyDaysAgo.toISOString().split('T')[0],
-      })
-      .groupBy('CAST(post.post_date AS DATE)')
-      .getRawMany();
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    // Parallelize all independent queries
+    const [
+      totalPosts,
+      postsThisMonth,
+      activeDaysRows,
+      allDateRows,
+      totalLikesReceived,
+      totalCommentsReceived,
+      postedDaysThisMonthRows,
+      lastPost,
+    ] = await Promise.all([
+      // Total posts
+      this.postRepo.count({
+        where: { userId, isDeleted: false },
+      }),
+
+      // Posts this month
+      this.postRepo
+        .createQueryBuilder('post')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('post.is_deleted = :isDel', { isDel: false })
+        .andWhere('post.post_date >= :start', { start: startOfMonthStr })
+        .getCount(),
+
+      // Active days in last 30 days
+      this.postRepo
+        .createQueryBuilder('post')
+        .select('CAST(post.post_date AS DATE)', 'postDay')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('post.is_deleted = :isDel', { isDel: false })
+        .andWhere('post.post_date >= :start', { start: thirtyDaysAgoStr })
+        .groupBy('CAST(post.post_date AS DATE)')
+        .getRawMany(),
+
+      // Streaks: all distinct post dates descending
+      this.postRepo
+        .createQueryBuilder('post')
+        .select('CAST(post.post_date AS DATE)', 'postDay')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('post.is_deleted = :isDel', { isDel: false })
+        .groupBy('CAST(post.post_date AS DATE)')
+        .orderBy('postDay', 'DESC')
+        .getRawMany(),
+
+      // Total likes received
+      this.likeRepo
+        .createQueryBuilder('like')
+        .innerJoin('like.post', 'post')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('like.is_deleted = :isDel', { isDel: false })
+        .andWhere('post.is_deleted = :isDel2', { isDel2: false })
+        .getCount(),
+
+      // Total comments received
+      this.commentRepo
+        .createQueryBuilder('comment')
+        .innerJoin('comment.post', 'post')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('comment.user_id != :userId', { userId })
+        .andWhere('comment.is_deleted = :isDel', { isDel: false })
+        .andWhere('post.is_deleted = :isDel2', { isDel2: false })
+        .getCount(),
+
+      // Posted days this month (for missed days calc)
+      this.postRepo
+        .createQueryBuilder('post')
+        .select('CAST(post.post_date AS DATE)', 'postDay')
+        .where('post.user_id = :userId', { userId })
+        .andWhere('post.is_deleted = :isDel', { isDel: false })
+        .andWhere('post.post_date >= :start', { start: startOfMonthStr })
+        .andWhere('post.post_date <= :end', { end: todayStr })
+        .groupBy('CAST(post.post_date AS DATE)')
+        .getRawMany(),
+
+      // Last post date
+      this.postRepo.findOne({
+        where: { userId, isDeleted: false },
+        order: { postDate: 'DESC' },
+      }),
+    ]);
+
     const activeDaysLast30 = activeDaysRows.length;
-
-    // Streaks: get all distinct post dates descending
-    const allDateRows = await this.postRepo
-      .createQueryBuilder('post')
-      .select('CAST(post.post_date AS DATE)', 'postDay')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('post.is_deleted = :isDel', { isDel: false })
-      .groupBy('CAST(post.post_date AS DATE)')
-      .orderBy('postDay', 'DESC')
-      .getRawMany();
-
     const currentStreak = this.calculateCurrentStreak(allDateRows);
     const longestStreak = this.calculateLongestStreak(allDateRows);
-
-    // Total likes received
-    const totalLikesReceived = await this.likeRepo
-      .createQueryBuilder('like')
-      .innerJoin('like.post', 'post')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('like.is_deleted = :isDel', { isDel: false })
-      .andWhere('post.is_deleted = :isDel2', { isDel2: false })
-      .getCount();
-
-    // Total comments received
-    const totalCommentsReceived = await this.commentRepo
-      .createQueryBuilder('comment')
-      .innerJoin('comment.post', 'post')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('comment.user_id != :userId', { userId })
-      .andWhere('comment.is_deleted = :isDel', { isDel: false })
-      .andWhere('post.is_deleted = :isDel2', { isDel2: false })
-      .getCount();
-
-    // Missed days this month
     const daysInMonthSoFar = now.getDate();
-    const missedDaysThisMonth = daysInMonthSoFar - (await this.postRepo
-      .createQueryBuilder('post')
-      .select('CAST(post.post_date AS DATE)', 'postDay')
-      .where('post.user_id = :userId', { userId })
-      .andWhere('post.is_deleted = :isDel', { isDel: false })
-      .andWhere('post.post_date >= :start', {
-        start: startOfMonth.toISOString().split('T')[0],
-      })
-      .andWhere('post.post_date <= :end', {
-        end: now.toISOString().split('T')[0],
-      })
-      .groupBy('CAST(post.post_date AS DATE)')
-      .getRawMany()).length;
-
-    // Last post date
-    const lastPost = await this.postRepo.findOne({
-      where: { userId, isDeleted: false },
-      order: { postDate: 'DESC' },
-    });
+    const missedDaysThisMonth = daysInMonthSoFar - postedDaysThisMonthRows.length;
 
     return {
       totalPosts,
@@ -423,6 +463,7 @@ export class UserService {
   private sanitizeUser(user: User): Record<string, any> {
     return {
       shainBangou: user.shainBangou,
+      lastNumber: user.lastNumber,
       username: user.username,
       email: user.email,
       fullName: user.fullName,
@@ -436,7 +477,15 @@ export class UserService {
       shainSection: user.shainSection,
       shainShigotoba: user.shainShigotoba,
       shainShigotoJoutai: user.shainShigotoJoutai,
+      birthday: user.birthday,
+      address1: user.address1,
+      phone: user.phone,
+      mobile: user.mobile,
+      entranceDate: user.entranceDate,
+      avatar: user.defaultAvatarUrl,
       avatarUrl: user.avatarUrl,
+      snsAvatarUrl: user.snsAvatarUrl,
+      snsBio: user.snsBio,
       bio: user.bio,
       snsIsActive: user.snsIsActive,
       snsLastLoginAt: user.snsLastLoginAt,

@@ -1,5 +1,6 @@
 export interface UserProfile {
   shainBangou: number;
+  lastNumber: number;
   email: string;
   shainName: string;
   fullName: string;
@@ -17,11 +18,13 @@ export interface UserProfile {
 export interface UserStats {
   totalPosts: number;
   postsThisMonth: number;
+  activeDaysLast30: number;
   currentStreak: number;
   longestStreak: number;
-  likesReceived: number;
-  commentsReceived: number;
+  totalLikesReceived: number;
+  totalCommentsReceived: number;
   missedDaysThisMonth: number;
+  lastPostDate: string | null;
 }
 
 export interface UpdateProfileRequest {

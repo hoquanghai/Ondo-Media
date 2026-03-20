@@ -62,7 +62,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
 
   if (isLoading) {
     return (
-      <div className="mt-3 space-y-3 border-t border-[hsl(var(--border))] pt-3">
+      <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
         {[1, 2].map((i) => (
           <div key={i} className="flex gap-2">
             <Skeleton className="h-8 w-8 rounded-full" />
@@ -74,12 +74,13 @@ export function CommentSection({ postId }: CommentSectionProps) {
   }
 
   return (
-    <div className="mt-3 space-y-3 border-t border-[hsl(var(--border))] pt-3">
+    <div className="mt-3 space-y-3 border-t border-gray-200 pt-3">
       {/* 新規コメント入力 */}
       <div className="flex gap-2">
         <UserAvatar
           shainName={user?.shainName ?? ""}
           avatar={user?.avatar}
+          snsAvatarUrl={user?.snsAvatarUrl}
           size="sm"
         />
         <Input
@@ -92,12 +93,13 @@ export function CommentSection({ postId }: CommentSectionProps) {
               handleSubmit();
             }
           }}
-          className="text-sm"
+          className="text-sm border-gray-200 focus:border-[#1e3a8a] focus:ring-[#1e3a8a]/20"
         />
         <Button
           size="icon"
           onClick={handleSubmit}
           disabled={!newComment.trim() || isSending}
+          className="bg-[#1e3a8a] hover:bg-[#1e3a8a]/90"
         >
           <Send className="h-4 w-4" />
         </Button>
@@ -112,16 +114,16 @@ export function CommentSection({ postId }: CommentSectionProps) {
             snsAvatarUrl={comment.author.snsAvatarUrl}
             size="sm"
           />
-          <div className="flex-1 bg-[hsl(var(--muted))] rounded-lg p-2">
+          <div className="flex-1 bg-gray-50 rounded-lg p-2.5">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">
+              <span className="text-xs font-medium text-gray-900">
                 {comment.author.shainName}
               </span>
-              <span className="text-xs text-[hsl(var(--muted-foreground))]">
+              <span className="text-xs text-gray-400">
                 {formatRelativeTime(comment.createdAt)}
               </span>
             </div>
-            <p className="text-sm mt-0.5">{comment.content}</p>
+            <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
           </div>
         </div>
       ))}
@@ -129,7 +131,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
       {/* さらに表示 */}
       {hasMoreComments && (
         <button
-          className="text-sm text-[hsl(var(--primary))] hover:underline"
+          className="text-sm text-[#1e3a8a] hover:underline"
           onClick={handleLoadMore}
         >
           コメントをさらに表示
@@ -137,7 +139,7 @@ export function CommentSection({ postId }: CommentSectionProps) {
       )}
 
       {comments.length === 0 && (
-        <p className="text-xs text-[hsl(var(--muted-foreground))] text-center py-2">
+        <p className="text-xs text-gray-400 text-center py-2">
           コメントはありません
         </p>
       )}

@@ -82,4 +82,11 @@ export class PostController {
   async deleteComment(data: any) {
     return this.postService.deleteComment(data);
   }
+
+  // ─── Files ───
+
+  @MessagePattern(MESSAGE_PATTERNS.POST_CREATE_FILES)
+  async createFiles(data: any) {
+    return this.postService.createFiles(data);
+  }
 }

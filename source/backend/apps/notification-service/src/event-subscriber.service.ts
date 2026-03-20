@@ -95,6 +95,12 @@ export class EventSubscriber implements OnModuleInit, OnModuleDestroy {
       referenceType: 'post',
       referenceId: data.postId ?? data.id,
     });
+
+    // Emit timeline event for realtime updates
+    this.gateway.broadcast('timeline:post-created', {
+      post: data.post,
+      authorId: data.authorId ?? data.userId,
+    });
   }
 
   private async handlePostLiked(data: any) {
@@ -114,6 +120,14 @@ export class EventSubscriber implements OnModuleInit, OnModuleDestroy {
       });
       this.gateway.sendToUser(postAuthorId, 'notification', notification);
     }
+
+    // Emit timeline event for realtime like count updates
+    this.gateway.broadcast('timeline:post-liked', {
+      postId: data.postId,
+      likerId,
+      likeCount: data.likeCount,
+      reactionType: data.reactionType,
+    });
   }
 
   private async handleCommentCreated(data: any) {
@@ -133,6 +147,14 @@ export class EventSubscriber implements OnModuleInit, OnModuleDestroy {
       });
       this.gateway.sendToUser(postAuthorId, 'notification', notification);
     }
+
+    // Emit timeline event for realtime comment count updates
+    this.gateway.broadcast('timeline:comment-created', {
+      postId: data.postId,
+      authorId: commentAuthorId,
+      commentCount: data.commentCount,
+      comment: data.comment,
+    });
   }
 
   private async handleAnnouncementCreated(data: any) {

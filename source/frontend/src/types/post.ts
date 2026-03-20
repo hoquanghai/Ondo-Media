@@ -3,9 +3,12 @@ import type { User } from "./user";
 export interface PostFile {
   id: string;
   fileName: string;
+  storageKey: string;
   fileUrl: string;
   mimeType: string;
+  fileType: "image" | "video" | "document";
   fileSize: number;
+  sortOrder?: number;
 }
 
 export interface Comment {
@@ -33,6 +36,7 @@ export interface Post {
   likeCount: number;
   commentCount: number;
   isLikedByMe: boolean;
+  myReactionType: string | null;
   postDate: string;
   createdAt: string;
   updatedAt: string;

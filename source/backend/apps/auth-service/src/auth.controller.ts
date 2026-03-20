@@ -10,7 +10,7 @@ export class AuthController {
   @MessagePattern(MESSAGE_PATTERNS.AUTH_LOGIN)
   async login(
     @Payload()
-    data: { shainBangou: number; password?: string; rememberMe?: boolean },
+    data: { lastNumber: number; password?: string; rememberMe?: boolean },
   ) {
     return this.authService.login(data);
   }

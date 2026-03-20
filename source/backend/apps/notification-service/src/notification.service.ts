@@ -83,19 +83,20 @@ export class NotificationService {
       await this.notifRepo.save(notifications, { chunk: 100 });
     }
 
-    // Send browser push to all (except excluded)
-    for (const u of users) {
-      if (u.shainBangou !== data.excludeUserId) {
-        await this.webPush.sendToUser(u.shainBangou, {
+    // Fire-and-forget: don't block on push notifications
+    const pushPromises = users
+      .filter(u => u.shainBangou !== data.excludeUserId)
+      .map(u =>
+        this.webPush.sendToUser(u.shainBangou, {
           title: data.title,
           body: data.message ?? '',
           data: {
             referenceType: data.referenceType,
             referenceId: data.referenceId,
           },
-        });
-      }
-    }
+        }).catch(() => {}),
+      );
+    Promise.allSettled(pushPromises); // intentionally not awaited
   }
 
   async findAll(data: { userId: number; page?: number; limit?: number }) {

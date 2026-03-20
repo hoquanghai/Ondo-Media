@@ -47,7 +47,7 @@ export const useNotificationStore = create<
             : [...get().notifications, ...data.items],
         unreadCount: data.unreadCount ?? 0,
         isLoading: false,
-        hasMore: page < data.totalPages,
+        hasMore: page < (data.meta?.totalPages ?? 0),
         page,
       });
     } catch {

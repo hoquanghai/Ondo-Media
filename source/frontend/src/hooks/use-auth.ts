@@ -1,31 +1,45 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useAuthStore } from "@/stores/auth-store";
+
+/**
+ * Track Zustand persist hydration with useSyncExternalStore
+ * to avoid race conditions with useEffect.
+ */
+function useHasHydrated() {
+  return useSyncExternalStore(
+    (onStoreChange) => useAuthStore.persist.onFinishHydration(onStoreChange),
+    () => useAuthStore.persist.hasHydrated(),
+    () => false, // SSR always returns false
+  );
+}
 
 export function useAuth() {
   const store = useAuthStore();
-  const initialized = useRef(false);
+  const hydrated = useHasHydrated();
 
-  // 初回マウント時に認証状態を確認
+  // After hydration, ensure isLoading is false if we already have auth state
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    if (!hydrated) return;
 
-    const token = useAuthStore.getState().accessToken;
-    if (token && !useAuthStore.getState().isAuthenticated) {
-      store.checkAuth();
-    } else if (token && useAuthStore.getState().isAuthenticated) {
-      // すでに認証済み — isLoading を false にする
-      useAuthStore.setState({ isLoading: false });
-    } else {
-      // トークンなし
-      useAuthStore.setState({ isLoading: false });
+    const { accessToken, isAuthenticated, user, isLoading } = useAuthStore.getState();
+
+    // If already authenticated with token+user, just make sure isLoading is off
+    if (accessToken && isAuthenticated && user) {
+      if (isLoading) {
+        useAuthStore.setState({ isLoading: false });
+      }
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  // 401 イベントのリスナー（API クライアントから発火）
+    // No valid auth state
+    if (!accessToken) {
+      useAuthStore.setState({ isLoading: false, isAuthenticated: false });
+    }
+  }, [hydrated]);
+
+  // 401 event listener
   useEffect(() => {
     const handler = () => {
       store.refreshTokenAction();
@@ -36,8 +50,8 @@ export function useAuth() {
 
   return {
     user: store.user,
-    isAuthenticated: store.isAuthenticated,
-    isLoading: store.isLoading,
+    isAuthenticated: hydrated ? store.isAuthenticated : false,
+    isLoading: !hydrated,
     error: store.error,
     login: store.login,
     loginWithMicrosoft: store.loginWithMicrosoft,

@@ -9,6 +9,7 @@ export interface AdminStats {
 
 export interface AdminUser {
   shainBangou: number;
+  lastNumber: number;
   email: string;
   shainName: string;
   shainGroup: string;
@@ -36,6 +37,7 @@ export interface Permission {
 
 export interface UserPermission {
   shainBangou: number;
+  lastNumber: number;
   email: string;
   shainName: string;
   permissions: string[]; // permission id array

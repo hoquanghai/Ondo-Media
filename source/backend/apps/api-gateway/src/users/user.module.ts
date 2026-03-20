@@ -6,6 +6,7 @@ import { UserController } from './user.controller';
 
 @Module({
   imports: [
+    ConfigModule,
     ClientsModule.registerAsync([
       {
         name: SERVICE_TOKENS.USER_SERVICE,
@@ -15,7 +16,7 @@ import { UserController } from './user.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('USER_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('USER_SERVICE_PORT', '3002'), 10),
+            port: parseInt(config.get<string>('USER_SERVICE_PORT', '3012'), 10),
           },
         }),
       },
@@ -27,7 +28,7 @@ import { UserController } from './user.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('POST_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('POST_SERVICE_PORT', '3003'), 10),
+            port: parseInt(config.get<string>('POST_SERVICE_PORT', '3013'), 10),
           },
         }),
       },

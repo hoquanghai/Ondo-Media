@@ -15,7 +15,7 @@ import { AuthController } from './auth.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('AUTH_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('AUTH_SERVICE_PORT', '3001'), 10),
+            port: parseInt(config.get<string>('AUTH_SERVICE_PORT', '3011'), 10),
           },
         }),
       },

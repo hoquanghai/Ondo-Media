@@ -7,10 +7,13 @@ async function bootstrap() {
     PostModule,
     {
       transport: Transport.TCP,
-      options: { host: 'localhost', port: 3003 },
+      options: {
+        host: '0.0.0.0',
+        port: parseInt(process.env.POST_SERVICE_PORT ?? '3013', 10),
+      },
     },
   );
   await app.listen();
-  console.log('Post Service is running on port 3003');
+  console.log(`Post Service is running on TCP port ${process.env.POST_SERVICE_PORT ?? '3013'}`);
 }
 bootstrap();

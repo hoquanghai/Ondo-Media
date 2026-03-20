@@ -31,6 +31,9 @@ export class Like {
   @Column({ name: 'created_by', type: 'int', nullable: true })
   createdBy: number;
 
+  @Column({ name: 'reaction_type', type: 'nvarchar', length: 20, default: "'like'" })
+  reactionType: string;
+
   @Column({ name: 'is_deleted', type: 'bit', default: false })
   isDeleted: boolean;
 

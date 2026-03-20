@@ -7,10 +7,13 @@ async function bootstrap() {
     FileModule,
     {
       transport: Transport.TCP,
-      options: { host: '0.0.0.0', port: 3007 },
+      options: {
+        host: '0.0.0.0',
+        port: parseInt(process.env.FILE_SERVICE_PORT ?? '3017', 10),
+      },
     },
   );
   await app.listen();
-  console.log('File service listening on TCP port 3007');
+  console.log(`File service listening on TCP port ${process.env.FILE_SERVICE_PORT ?? '3017'}`);
 }
 bootstrap();

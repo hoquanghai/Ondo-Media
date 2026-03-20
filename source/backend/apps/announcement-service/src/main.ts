@@ -7,10 +7,13 @@ async function bootstrap() {
     AnnouncementModule,
     {
       transport: Transport.TCP,
-      options: { host: 'localhost', port: 3004 },
+      options: {
+        host: '0.0.0.0',
+        port: parseInt(process.env.ANNOUNCEMENT_SERVICE_PORT ?? '3014', 10),
+      },
     },
   );
   await app.listen();
-  console.log('Announcement Service is running on port 3004');
+  console.log(`Announcement Service is running on TCP port ${process.env.ANNOUNCEMENT_SERVICE_PORT ?? '3014'}`);
 }
 bootstrap();

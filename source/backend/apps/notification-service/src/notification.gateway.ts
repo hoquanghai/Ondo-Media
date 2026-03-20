@@ -13,7 +13,6 @@ import { ConfigService } from '@nestjs/config';
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
-  namespace: '/notifications',
 })
 export class NotificationGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -52,8 +51,29 @@ export class NotificationGateway
   }
 
   handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    // Extract userId from JWT token (base64 decode, no verification needed - API gateway already verifies)
+    let userId: string | undefined;
+
+    const token = client.handshake.auth?.token as string | undefined;
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+          userId = String(payload.sub ?? payload.userId ?? payload.shainBangou);
+        }
+      } catch {
+        this.logger.warn(`Failed to decode JWT token for client ${client.id}`);
+      }
+    }
+
+    // Fallback to query param
+    if (!userId || userId === 'undefined') {
+      userId = client.handshake.query.userId as string;
+    }
+
     if (!userId) {
+      this.logger.warn(`Client ${client.id} connected without userId, disconnecting`);
       client.disconnect();
       return;
     }
@@ -70,11 +90,14 @@ export class NotificationGateway
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId && this.userSockets.has(userId)) {
-      this.userSockets.get(userId)!.delete(client.id);
-      if (this.userSockets.get(userId)!.size === 0) {
-        this.userSockets.delete(userId);
+    // Find and clean up user mapping
+    for (const [userId, sockets] of this.userSockets.entries()) {
+      if (sockets.has(client.id)) {
+        sockets.delete(client.id);
+        if (sockets.size === 0) {
+          this.userSockets.delete(userId);
+        }
+        break;
       }
     }
     this.logger.log(`Client disconnected: ${client.id}`);

@@ -7,6 +7,7 @@ import { CommentController } from './comment.controller';
 
 @Module({
   imports: [
+    ConfigModule,
     ClientsModule.registerAsync([
       {
         name: SERVICE_TOKENS.POST_SERVICE,
@@ -16,7 +17,7 @@ import { CommentController } from './comment.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('POST_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('POST_SERVICE_PORT', '3003'), 10),
+            port: parseInt(config.get<string>('POST_SERVICE_PORT', '3013'), 10),
           },
         }),
       },

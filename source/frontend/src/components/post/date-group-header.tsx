@@ -37,11 +37,11 @@ export function DateGroupHeader({ date, count }: DateGroupHeaderProps) {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 py-3 px-1 sticky top-16 bg-[hsl(var(--background))] z-10">
+      <div className="flex items-center gap-2 py-4 sticky top-16 bg-[#f5f5f7] z-10">
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-white"
           onClick={handlePrevDate}
           aria-label="前の日"
         >
@@ -52,11 +52,11 @@ export function DateGroupHeader({ date, count }: DateGroupHeaderProps) {
           className="flex items-center gap-2 hover:opacity-70 transition-opacity"
           onClick={() => setShowCalendar(!showCalendar)}
         >
-          <CalendarDays className="h-5 w-5 text-[hsl(var(--primary))]" />
-          <h2 className="text-base font-bold text-[hsl(var(--foreground))]">
+          <CalendarDays className="h-5 w-5 text-[#1e3a8a]" />
+          <h2 className="text-base font-bold text-gray-900">
             {formatted}
           </h2>
-          <span className="text-sm text-[hsl(var(--muted-foreground))]">
+          <span className="text-sm bg-[#1e3a8a] text-white px-2.5 py-0.5 rounded-full font-medium">
             {count}件
           </span>
         </button>
@@ -64,7 +64,7 @@ export function DateGroupHeader({ date, count }: DateGroupHeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-white"
           onClick={handleNextDate}
           aria-label="次の日"
         >
@@ -73,7 +73,7 @@ export function DateGroupHeader({ date, count }: DateGroupHeaderProps) {
       </div>
 
       {showCalendar && (
-        <div className="absolute left-0 top-full mt-1 border border-[hsl(var(--border))] rounded-lg bg-[hsl(var(--card))] shadow-lg z-20">
+        <div className="absolute left-0 top-full mt-1 border border-gray-200 rounded-xl bg-white shadow-lg z-20">
           <Calendar
             selected={dateObj}
             onSelect={handleDateSelect}

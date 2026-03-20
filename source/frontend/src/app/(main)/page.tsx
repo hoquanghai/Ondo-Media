@@ -13,19 +13,18 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 
 export default function TimelinePage() {
-  const {
-    dateGroups,
-    currentDate,
-    dateCounts,
-    isLoading,
-    hasMore,
-    hasNewPosts,
-    fetchPosts,
-    fetchDateCounts,
-    loadMore,
-    setCurrentDate,
-    setHasNewPosts,
-  } = usePostStore();
+  // Split selectors to reduce re-renders: data vs UI state vs actions
+  const dateGroups = usePostStore((s) => s.dateGroups);
+  const currentDate = usePostStore((s) => s.currentDate);
+  const dateCounts = usePostStore((s) => s.dateCounts);
+  const isLoading = usePostStore((s) => s.isLoading);
+  const hasMore = usePostStore((s) => s.hasMore);
+  const hasNewPosts = usePostStore((s) => s.hasNewPosts);
+  const fetchPosts = usePostStore((s) => s.fetchPosts);
+  const fetchDateCounts = usePostStore((s) => s.fetchDateCounts);
+  const loadMore = usePostStore((s) => s.loadMore);
+  const setCurrentDate = usePostStore((s) => s.setCurrentDate);
+  const setHasNewPosts = usePostStore((s) => s.setHasNewPosts);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -72,29 +71,29 @@ export default function TimelinePage() {
     <div className="max-w-2xl mx-auto">
       {/* ページタイトル + 日付フィルター */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold">タイムライン</h1>
+        <h1 className="text-lg font-bold text-gray-900">タイムライン</h1>
         <div className="relative">
           <Button
             variant="outline"
             size="sm"
-            className="gap-1"
+            className="gap-1.5 border-gray-200 text-gray-700 hover:bg-white"
             onClick={() => setShowDatePicker(!showDatePicker)}
           >
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4 text-[#1e3a8a]" />
             {currentDate}
           </Button>
           {showDatePicker && (
-            <div className="absolute right-0 top-full mt-1 border border-[hsl(var(--border))] rounded-lg bg-[hsl(var(--card))] shadow-lg z-20">
+            <div className="absolute right-0 top-full mt-1 border border-gray-200 rounded-xl bg-white shadow-lg z-20">
               <Calendar
                 selected={new Date(currentDate)}
                 onSelect={handleDateSelect}
                 dateCounts={dateCounts}
               />
-              <div className="p-2 border-t border-[hsl(var(--border))]">
+              <div className="p-2 border-t border-gray-100">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs"
+                  className="w-full text-xs text-gray-600 hover:text-[#1e3a8a]"
                   onClick={() => {
                     setCurrentDate(format(new Date(), "yyyy-MM-dd"));
                     setShowDatePicker(false);
@@ -112,7 +111,7 @@ export default function TimelinePage() {
       {hasNewPosts && (
         <Button
           variant="outline"
-          className="w-full mb-4 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/30 bg-[hsl(var(--primary))]/5"
+          className="w-full mb-4 text-[#1e3a8a] border-[#1e3a8a]/30 bg-[#1e3a8a]/5 hover:bg-[#1e3a8a]/10"
           onClick={handleRefresh}
         >
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -147,7 +146,7 @@ export default function TimelinePage() {
 
       {/* すべて読み込み済み */}
       {!hasMore && dateGroups.length > 0 && (
-        <p className="text-center text-sm text-[hsl(var(--muted-foreground))] py-8">
+        <p className="text-center text-sm text-gray-400 py-8">
           すべての投稿を表示しました
         </p>
       )}

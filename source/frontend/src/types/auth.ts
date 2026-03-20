@@ -1,14 +1,14 @@
 import type { CurrentUser } from "./user";
 
 export interface LoginRequest {
-  shainBangou: number;
+  lastNumber: number;
   password?: string;
   rememberMe?: boolean;
 }
 
 export interface MicrosoftLoginRequest {
   code: string;
-  redirect_uri: string;
+  redirectUri: string;
 }
 
 export interface LoginResponse {
@@ -17,10 +17,13 @@ export interface LoginResponse {
   expiresIn: number;
   user: {
     shainBangou: number;
+    lastNumber: number;
     shainName: string;
     shainGroup: string;
     email: string;
-    avatar: string;
+    avatar: string | null;
+    avatarUrl: string | null;
+    snsAvatarUrl: string | null;
     hasPassword: boolean;
     permissions: string[];
   };
@@ -32,7 +35,7 @@ export interface CreatePasswordRequest {
 }
 
 export interface RefreshTokenRequest {
-  refresh_token: string;
+  refreshToken: string;
 }
 
 export interface RefreshTokenResponse {

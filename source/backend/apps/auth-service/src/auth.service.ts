@@ -27,7 +27,7 @@ export class AuthService {
   ) {}
 
   /**
-   * Login by shainBangou (社員番号).
+   * Login by lastNumber (社員番号).
    *
    * Rules:
    * - If sns_password_hash is NULL AND password is empty → login success (first time, no password set)
@@ -36,15 +36,22 @@ export class AuthService {
    * - If sns_password_hash is NOT NULL → validate bcrypt
    */
   async login(data: {
-    shainBangou: number;
+    lastNumber: number;
     password?: string;
     rememberMe?: boolean;
   }): Promise<AuthResponseDto> {
-    const { shainBangou, password, rememberMe } = data;
+    const { lastNumber, password, rememberMe } = data;
 
-    const user = await this.userRepo.findOne({
-      where: { shainBangou },
-    });
+    this.logger.log(`Login attempt: lastNumber=${lastNumber}, type=${typeof lastNumber}`);
+
+    // Raw query to avoid TypeORM cross-database issues
+    const rows = await this.userRepo.query(
+      `SELECT * FROM [DR].[dbo].[shainList] WHERE [lastNumber] = @0`,
+      [Number(lastNumber)],
+    );
+    const user = rows.length > 0 ? await this.userRepo.findOne({ where: { shainBangou: rows[0].shainBangou } }) : null;
+
+    this.logger.log(`Found user: ${user ? `shainBangou=${user.shainBangou}, name=${user.shainName}, lastNumber=${user.lastNumber}` : 'null'}`);
 
     if (!user) {
       throw new UnauthorizedException(
@@ -61,7 +68,7 @@ export class AuthService {
 
     if (!hasPassword && !passwordProvided) {
       // First-time login: no password set, no password provided → allow
-      this.logger.log(`First-time login for shainBangou=${shainBangou} (no password set)`);
+      this.logger.log(`First-time login for lastNumber=${lastNumber} (shainBangou=${user.shainBangou}, no password set)`);
     } else if (!hasPassword && passwordProvided) {
       // Password not set yet but user provided one → reject
       throw new UnauthorizedException(
@@ -83,8 +90,10 @@ export class AuthService {
     }
 
     // Update sns_last_login_at
-    user.snsLastLoginAt = new Date();
-    await this.userRepo.save(user);
+    await this.userRepo.update(
+      { shainBangou: user.shainBangou },
+      { snsLastLoginAt: new Date() },
+    );
 
     const permissions = await this.loadPermissions(user.shainBangou);
 
@@ -135,14 +144,12 @@ export class AuthService {
       throw new UnauthorizedException('アカウントが無効化されています');
     }
 
-    // Link MS365 ID if not already set
+    // Link MS365 ID if not already set + update last login
+    const updateData: Partial<User> = { snsLastLoginAt: new Date() };
     if (!user.snsMs365Id) {
-      user.snsMs365Id = msUser.oid;
+      updateData.snsMs365Id = msUser.oid;
     }
-
-    // Update last login
-    user.snsLastLoginAt = new Date();
-    await this.userRepo.save(user);
+    await this.userRepo.update({ shainBangou: user.shainBangou }, updateData);
 
     this.logger.log(`MS365 login for shainBangou=${user.shainBangou}`);
 
@@ -218,6 +225,7 @@ export class AuthService {
 
     return {
       shainBangou: user.shainBangou,
+      lastNumber: user.lastNumber,
       username: user.username,
       email: user.email,
       fullName: user.fullName,
@@ -229,7 +237,9 @@ export class AuthService {
       shainSection: user.shainSection,
       shainShigotoba: user.shainShigotoba,
       shainShigotoJoutai: user.shainShigotoJoutai,
+      avatar: user.defaultAvatarUrl,
       avatarUrl: user.avatarUrl,
+      snsAvatarUrl: user.snsAvatarUrl || null,
       bio: user.bio,
       snsIsActive: user.snsIsActive,
       snsLastLoginAt: user.snsLastLoginAt ? user.snsLastLoginAt.toISOString() : null,
@@ -260,9 +270,10 @@ export class AuthService {
     }
 
     const hash = await bcrypt.hash(data.password, 10);
-    user.snsPasswordHash = hash;
-    user.snsPasswordCreatedAt = new Date();
-    await this.userRepo.save(user);
+    await this.userRepo.update(
+      { shainBangou: data.shainBangou },
+      { snsPasswordHash: hash, snsPasswordCreatedAt: new Date() },
+    );
 
     this.logger.log(`Password created for shainBangou=${data.shainBangou}`);
 
@@ -297,8 +308,10 @@ export class AuthService {
     }
 
     const hash = await bcrypt.hash(data.newPassword, 10);
-    user.snsPasswordHash = hash;
-    await this.userRepo.save(user);
+    await this.userRepo.update(
+      { shainBangou: data.shainBangou },
+      { snsPasswordHash: hash },
+    );
 
     this.logger.log(`Password changed for shainBangou=${data.shainBangou}`);
 

@@ -15,7 +15,7 @@ import { SurveyGatewayController } from './survey.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('SURVEY_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('SURVEY_SERVICE_PORT', '3005'), 10),
+            port: parseInt(config.get<string>('SURVEY_SERVICE_PORT', '3015'), 10),
           },
         }),
       },

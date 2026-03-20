@@ -3,7 +3,7 @@ import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-val
 export class LoginDto {
   @IsNumber()
   @IsNotEmpty()
-  shainBangou: number;
+  lastNumber: number;
 
   @IsString()
   @IsOptional()

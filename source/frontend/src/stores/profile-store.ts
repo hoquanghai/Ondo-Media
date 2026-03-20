@@ -41,7 +41,7 @@ export const useProfileStore = create<ProfileState & ProfileActions>(
 
     fetchMyProfile: async () => {
       try {
-        const profile = await api.get<UserProfile>("/users/me/profile");
+        const profile = await api.get<UserProfile>("/users/me");
         set({ profile });
       } catch {
         // ignore
@@ -60,9 +60,11 @@ export const useProfileStore = create<ProfileState & ProfileActions>(
     fetchMyPosts: async (page = 1) => {
       set({ isLoading: true });
       try {
+        const userId = get().profile?.shainBangou;
         const data = await api.get<PaginatedResponse<Post>>(
-          "/users/me/posts",
+          "/posts",
           {
+            userId: userId ? String(userId) : "",
             page: String(page),
             limit: "10",
           }
@@ -70,7 +72,7 @@ export const useProfileStore = create<ProfileState & ProfileActions>(
         set({
           posts: page === 1 ? data.items : [...get().posts, ...data.items],
           isLoading: false,
-          hasMorePosts: page < data.totalPages,
+          hasMorePosts: data.meta ? page < data.meta.totalPages : false,
           postsPage: page,
         });
       } catch {
@@ -84,7 +86,7 @@ export const useProfileStore = create<ProfileState & ProfileActions>(
       if (data.snsBio !== undefined) formData.append("snsBio", data.snsBio);
       if (data.avatar) formData.append("avatar", data.avatar);
 
-      const profile = await api.request<UserProfile>("/users/me/profile", {
+      const profile = await api.request<UserProfile>("/users/me", {
         method: "PATCH",
         body: formData,
       });
@@ -123,7 +125,7 @@ export const useProfileStore = create<ProfileState & ProfileActions>(
         set({
           posts: page === 1 ? data.items : [...get().posts, ...data.items],
           isLoading: false,
-          hasMorePosts: page < data.totalPages,
+          hasMorePosts: data.meta ? page < data.meta.totalPages : false,
           postsPage: page,
         });
       } catch {

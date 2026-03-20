@@ -1,5 +1,6 @@
 export class AuthUserDto {
   shainBangou: number;
+  lastNumber: number;
   username: string;
   email: string;
   shainName: string;
@@ -7,11 +8,14 @@ export class AuthUserDto {
   shainTeam: string;
   shainYaku: string;
   shainSection: string;
+  avatar: string | null;
   avatarUrl: string | null;
+  snsAvatarUrl: string | null;
   bio: string | null;
   snsIsActive: boolean;
   snsLastLoginAt: string | null;
   hasPassword: boolean;
+  permissions: string[];
 }
 
 export class AuthResponseDto {

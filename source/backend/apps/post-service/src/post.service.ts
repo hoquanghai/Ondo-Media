@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RpcException } from '@nestjs/microservices';
-import { Post, Like, Comment, PostFile } from '@app/database';
+import { Post, Like, Comment, PostFile, User } from '@app/database';
 import { PaginatedResponseDto } from '@app/common';
 import { EVENTS } from '@app/common';
 import { TimelineCacheService } from './timeline-cache.service';
@@ -19,9 +19,77 @@ export class PostService {
     private readonly commentRepo: Repository<Comment>,
     @InjectRepository(PostFile)
     private readonly postFileRepo: Repository<PostFile>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly cache: TimelineCacheService,
     private readonly events: EventPublisher,
   ) {}
+
+  /**
+   * Enrich posts with author info from DR.dbo.shainList
+   */
+  private async enrichWithAuthors(posts: Post[]): Promise<any[]> {
+    if (posts.length === 0) return [];
+    const userIds = [...new Set(posts.map((p) => p.userId))];
+    const users = await this.userRepo.findBy(
+      userIds.map((id) => ({ shainBangou: id })),
+    );
+    const userMap = new Map(users.map((u) => [u.shainBangou, u]));
+
+    return posts.map((post) => {
+      const author = userMap.get(post.userId);
+      // Manual mapping instead of JSON.parse(JSON.stringify()) to avoid hot-path overhead
+      const plainPost = {
+        id: post.id,
+        userId: post.userId,
+        title: post.title,
+        content: post.content,
+        postDate: post.postDate,
+        likeCount: post.likeCount,
+        commentCount: post.commentCount,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        createdBy: post.createdBy,
+        isDeleted: post.isDeleted,
+        files: post.files ? post.files.map(f => ({
+          id: f.id, postId: f.postId, fileName: f.fileName,
+          storageKey: f.storageKey, fileSize: f.fileSize,
+          mimeType: f.mimeType, fileType: f.fileType,
+          sortOrder: f.sortOrder, createdAt: f.createdAt,
+        })) : [],
+        comments: post.comments ? post.comments.map(c => ({
+          id: c.id, postId: c.postId, userId: c.userId,
+          content: c.content, createdAt: c.createdAt,
+        })) : [],
+        isLikedByMe: (post as any).isLikedByMe ?? false,
+        myReactionType: (post as any).myReactionType ?? null,
+      };
+      return {
+        ...plainPost,
+        author: author
+          ? {
+              shainBangou: author.shainBangou,
+              lastNumber: author.lastNumber,
+              shainName: author.displayName,
+              shainGroup: author.department,
+              shainYaku: author.position,
+              avatar: author.defaultAvatarUrl,
+              snsAvatarUrl: author.snsAvatarUrl,
+              avatarUrl: author.avatarUrl,
+            }
+          : {
+              shainBangou: post.userId,
+              lastNumber: null,
+              shainName: `社員${post.userId}`,
+              shainGroup: '',
+              shainYaku: '',
+              avatar: null,
+              snsAvatarUrl: null,
+              avatarUrl: null,
+            },
+      };
+    });
+  }
 
   // ─── Post CRUD ───
 
@@ -54,15 +122,18 @@ export class PostService {
     // Invalidate cache for this date
     await this.cache.invalidate(data.postDate);
 
-    // Publish event
-    await this.events.publish(EVENTS.POST_CREATED, {
+    // Return with relations
+    const fullPost = await this.findById({ id: saved.id });
+
+    // Fire-and-forget: event is for realtime updates, not critical to the response
+    this.events.publish(EVENTS.POST_CREATED, {
       postId: saved.id,
       authorId: data.userId,
       postDate: data.postDate,
-    });
+      post: fullPost,
+    }).catch(() => {});
 
-    // Return with relations
-    return this.findById({ id: saved.id });
+    return fullPost;
   }
 
   async findAll(data: {
@@ -87,18 +158,18 @@ export class PostService {
 
     const qb = this.postRepo.createQueryBuilder('post');
     qb.leftJoinAndSelect('post.files', 'files');
-    qb.where('post.is_deleted = :isDel', { isDel: false });
+    qb.where('post.isDeleted = :isDel', { isDel: false });
 
     if (data.date) {
-      qb.andWhere('post.post_date = :date', { date: data.date });
+      qb.andWhere('post.postDate = :date', { date: data.date });
     }
 
     if (data.userId) {
-      qb.andWhere('post.user_id = :userId', { userId: data.userId });
+      qb.andWhere('post.userId = :userId', { userId: data.userId });
     }
 
     // Sort
-    const sortColumn = sortBy === 'postDate' ? 'post.post_date' : 'post.created_at';
+    const sortColumn = sortBy === 'postDate' ? 'post.postDate' : 'post.createdAt';
     qb.orderBy(sortColumn, sortOrder);
 
     qb.skip((page - 1) * limit).take(limit);
@@ -111,20 +182,25 @@ export class PostService {
       const postIds = items.map((p) => p.id);
       const myLikes = await this.likeRepo
         .createQueryBuilder('like')
-        .select('like.post_id', 'postId')
-        .where('like.user_id = :userId', { userId: data.currentUserId })
-        .andWhere('like.post_id IN (:...postIds)', { postIds })
-        .andWhere('like.is_deleted = :isDel', { isDel: false })
+        .select('like.postId', 'postId')
+        .addSelect('like.reactionType', 'reactionType')
+        .where('like.userId = :userId', { userId: data.currentUserId })
+        .andWhere('like.postId IN (:...postIds)', { postIds })
+        .andWhere('like.isDeleted = :isDel', { isDel: false })
         .getRawMany();
-      const likedPostIds = new Set(myLikes.map((l) => l.postId));
+      const likeMap = new Map(myLikes.map((l) => [l.postId, l.reactionType]));
 
       processedItems = items.map((item) => ({
         ...item,
-        isLiked: likedPostIds.has(item.id),
+        isLikedByMe: likeMap.has(item.id),
+        myReactionType: likeMap.get(item.id) ?? null,
       })) as any;
     }
 
-    const result = PaginatedResponseDto.from(processedItems, total, page, limit);
+    // Enrich with author info from DR.dbo.shainList
+    const enriched = await this.enrichWithAuthors(processedItems as Post[]);
+
+    const result = PaginatedResponseDto.from(enriched, total, page, limit);
 
     // Cache date-based results
     if (data.date && !data.userId && !data.currentUserId) {
@@ -149,7 +225,8 @@ export class PostService {
     }
 
     // Check if current user liked
-    let isLiked = false;
+    let isLikedByMe = false;
+    let myReactionType: string | null = null;
     if (data.currentUserId) {
       const like = await this.likeRepo.findOne({
         where: {
@@ -158,10 +235,12 @@ export class PostService {
           isDeleted: false,
         },
       });
-      isLiked = !!like;
+      isLikedByMe = !!like;
+      myReactionType = like?.reactionType ?? null;
     }
 
-    return { ...post, isLiked };
+    const [enriched] = await this.enrichWithAuthors([post]);
+    return { ...enriched, isLikedByMe, myReactionType };
   }
 
   async update(data: {
@@ -239,17 +318,17 @@ export class PostService {
 
     const qb = this.postRepo
       .createQueryBuilder('post')
-      .select('CAST(post.post_date AS DATE)', 'date')
+      .select('post.postDate', 'date')
       .addSelect('COUNT(*)', 'count')
-      .where('post.post_date >= :start', { start: startDate })
-      .andWhere('post.post_date <= :end', { end: endDate })
-      .andWhere('post.is_deleted = :isDel', { isDel: false });
+      .where('post.postDate >= :start', { start: startDate })
+      .andWhere('post.postDate <= :end', { end: endDate })
+      .andWhere('post.isDeleted = :isDel', { isDel: false });
 
     if (data.userId) {
-      qb.andWhere('post.user_id = :userId', { userId: data.userId });
+      qb.andWhere('post.userId = :userId', { userId: data.userId });
     }
 
-    qb.groupBy('CAST(post.post_date AS DATE)')
+    qb.groupBy('post.postDate')
       .orderBy('date', 'ASC');
 
     const rows = await qb.getRawMany();
@@ -262,7 +341,7 @@ export class PostService {
 
   // ─── Likes ───
 
-  async like(data: { postId: string; userId: number }) {
+  async like(data: { postId: string; userId: number; reactionType?: string }) {
     const post = await this.postRepo.findOne({
       where: { id: data.postId, isDeleted: false },
     });
@@ -270,12 +349,20 @@ export class PostService {
       throw new RpcException({ statusCode: 404, message: '投稿が見つかりません' });
     }
 
-    // Check if already liked
+    const reactionType = data.reactionType ?? 'like';
+
+    // Check if already liked (active)
     const existing = await this.likeRepo.findOne({
       where: { postId: data.postId, userId: data.userId, isDeleted: false },
     });
+
     if (existing) {
-      return { alreadyLiked: true, likeCount: post.likeCount };
+      // Update reaction type if different
+      if (existing.reactionType !== reactionType) {
+        await this.likeRepo.update({ id: existing.id }, { reactionType });
+        return { liked: true, reactionType, likeCount: post.likeCount };
+      }
+      return { alreadyLiked: true, reactionType: existing.reactionType, likeCount: post.likeCount };
     }
 
     // Check for soft-deleted like to reactivate
@@ -284,28 +371,36 @@ export class PostService {
     });
 
     if (softDeleted) {
-      softDeleted.isDeleted = false;
-      await this.likeRepo.save(softDeleted);
+      await this.likeRepo.update({ id: softDeleted.id }, {
+        isDeleted: false,
+        reactionType,
+      });
     } else {
       const like = this.likeRepo.create({
         postId: data.postId,
         userId: data.userId,
+        reactionType,
         createdBy: data.userId,
       });
       await this.likeRepo.save(like);
     }
 
-    // Increment denormalized count
-    await this.postRepo.increment({ id: data.postId }, 'likeCount', 1);
+    // Recalculate count from DB (avoid drift)
+    const actualCount = await this.likeRepo.count({
+      where: { postId: data.postId, isDeleted: false },
+    });
+    await this.postRepo.update({ id: data.postId }, { likeCount: actualCount });
 
-    // Publish event
-    await this.events.publish(EVENTS.POST_LIKED, {
+    // Fire-and-forget: event is for realtime updates, not critical to the response
+    this.events.publish(EVENTS.POST_LIKED, {
       postId: data.postId,
       likerId: data.userId,
       postAuthorId: post.userId,
-    });
+      reactionType,
+      likeCount: actualCount,
+    }).catch(() => {});
 
-    return { liked: true, likeCount: post.likeCount + 1 };
+    return { liked: true, reactionType, likeCount: actualCount };
   }
 
   async unlike(data: { postId: string; userId: number }) {
@@ -320,25 +415,15 @@ export class PostService {
       return { unliked: false, likeCount: post?.likeCount ?? 0 };
     }
 
-    like.isDeleted = true;
-    await this.likeRepo.save(like);
+    await this.likeRepo.update({ id: like.id }, { isDeleted: true });
 
-    // Decrement denormalized count
-    await this.postRepo.decrement({ id: data.postId }, 'likeCount', 1);
-
-    // Ensure count doesn't go below 0
-    await this.postRepo
-      .createQueryBuilder()
-      .update(Post)
-      .set({ likeCount: 0 })
-      .where('id = :id AND like_count < 0', { id: data.postId })
-      .execute();
-
-    const post = await this.postRepo.findOne({
-      where: { id: data.postId },
+    // Recalculate count from DB
+    const actualCount = await this.likeRepo.count({
+      where: { postId: data.postId, isDeleted: false },
     });
+    await this.postRepo.update({ id: data.postId }, { likeCount: actualCount });
 
-    return { unliked: true, likeCount: post?.likeCount ?? 0 };
+    return { unliked: true, likeCount: actualCount };
   }
 
   async getLikes(data: { postId: string }) {
@@ -378,17 +463,27 @@ export class PostService {
     // Increment denormalized count
     await this.postRepo.increment({ id: data.postId }, 'commentCount', 1);
 
-    // Publish event
-    await this.events.publish(EVENTS.COMMENT_CREATED, {
+    // Get the updated post to read the authoritative comment count
+    const updatedPost = await this.postRepo.findOne({
+      where: { id: data.postId },
+      select: ['id', 'commentCount'],
+    });
+
+    const fullComment = await this.commentRepo.findOne({
+      where: { id: saved.id },
+    });
+
+    // Fire-and-forget: event is for realtime updates, not critical to the response
+    this.events.publish(EVENTS.COMMENT_CREATED, {
       postId: data.postId,
       commentId: saved.id,
       authorId: data.userId,
       postAuthorId: post.userId,
-    });
+      commentCount: updatedPost?.commentCount ?? post.commentCount + 1,
+      comment: fullComment,
+    }).catch(() => {});
 
-    return this.commentRepo.findOne({
-      where: { id: saved.id },
-    });
+    return fullComment;
   }
 
   async findComments(data: {
@@ -456,6 +551,33 @@ export class PostService {
     return { deleted: true };
   }
 
+  async createFiles(data: {
+    files: Array<{
+      postId: string;
+      fileName: string;
+      storageKey: string;
+      fileSize: number;
+      mimeType: string;
+      fileType: string;
+      sortOrder: number;
+      createdBy: number;
+    }>;
+  }) {
+    const entities = data.files.map((f) =>
+      this.postFileRepo.create({
+        postId: f.postId,
+        fileName: f.fileName,
+        storageKey: f.storageKey,
+        fileSize: f.fileSize,
+        mimeType: f.mimeType,
+        fileType: f.fileType,
+        sortOrder: f.sortOrder,
+        createdBy: f.createdBy,
+      }),
+    );
+    return this.postFileRepo.save(entities);
+  }
+
   async findByUserId(data: {
     userId: number;
     page?: number;
@@ -467,14 +589,14 @@ export class PostService {
 
     const qb = this.postRepo.createQueryBuilder('post');
     qb.leftJoinAndSelect('post.files', 'files');
-    qb.where('post.user_id = :userId', { userId: data.userId });
-    qb.andWhere('post.is_deleted = :isDel', { isDel: false });
+    qb.where('post.userId = :userId', { userId: data.userId });
+    qb.andWhere('post.isDeleted = :isDel', { isDel: false });
 
     if (data.date) {
-      qb.andWhere('post.post_date = :date', { date: data.date });
+      qb.andWhere('post.postDate = :date', { date: data.date });
     }
 
-    qb.orderBy('post.created_at', 'DESC');
+    qb.orderBy('post.createdAt', 'DESC');
     qb.skip((page - 1) * limit).take(limit);
 
     const [items, total] = await qb.getManyAndCount();

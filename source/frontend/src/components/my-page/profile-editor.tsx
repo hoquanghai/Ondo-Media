@@ -56,7 +56,7 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
   };
 
   const avatarSrc =
-    avatarPreview ?? profile.snsAvatarUrl || profile.avatar || undefined;
+    avatarPreview ?? (profile.snsAvatarUrl || profile.avatar || undefined);
 
   return (
     <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">

@@ -120,7 +120,7 @@ export default function AdminUsersPage() {
                 key={user.shainBangou}
                 className="border-t hover:bg-[hsl(var(--muted)/0.3)]"
               >
-                <td className="p-3">{user.shainBangou}</td>
+                <td className="p-3">{user.lastNumber}</td>
                 <td className="p-3">{user.shainName}</td>
                 <td className="p-3">{user.email}</td>
                 <td className="p-3">{user.shainGroup}</td>

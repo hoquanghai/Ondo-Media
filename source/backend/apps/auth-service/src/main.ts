@@ -9,11 +9,11 @@ async function bootstrap() {
       transport: Transport.TCP,
       options: {
         host: '0.0.0.0',
-        port: 3001,
+        port: parseInt(process.env.AUTH_SERVICE_PORT ?? '3011', 10),
       },
     },
   );
   await app.listen();
-  console.log('Auth Service is running on TCP port 3001');
+  console.log(`Auth Service is running on TCP port ${process.env.AUTH_SERVICE_PORT ?? '3011'}`);
 }
 bootstrap();

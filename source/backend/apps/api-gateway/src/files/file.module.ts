@@ -15,7 +15,7 @@ import { FileGatewayController } from './file.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('FILE_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('FILE_SERVICE_PORT', '3007'), 10),
+            port: parseInt(config.get<string>('FILE_SERVICE_PORT', '3017'), 10),
           },
         }),
       },

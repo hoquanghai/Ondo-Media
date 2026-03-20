@@ -69,7 +69,7 @@ export class TokenService {
       expiresIn: refreshExpiry as any,
     });
 
-    const userDto = this.toUserDto(user);
+    const userDto = this.toUserDto(user, permissions);
 
     return {
       accessToken,
@@ -172,9 +172,10 @@ export class TokenService {
     }
   }
 
-  private toUserDto(user: User): AuthUserDto {
+  private toUserDto(user: User, permissions: string[] = []): AuthUserDto {
     return {
       shainBangou: user.shainBangou,
+      lastNumber: user.lastNumber,
       username: user.username || '',
       email: user.email || '',
       shainName: user.displayName,
@@ -182,11 +183,14 @@ export class TokenService {
       shainTeam: user.shainTeam || '',
       shainYaku: user.position,
       shainSection: user.shainSection || '',
+      avatar: user.defaultAvatarUrl,
       avatarUrl: user.avatarUrl,
+      snsAvatarUrl: user.snsAvatarUrl || null,
       bio: user.bio,
       snsIsActive: user.isActive,
       snsLastLoginAt: user.snsLastLoginAt ? user.snsLastLoginAt.toISOString() : null,
       hasPassword: !!user.snsPasswordHash,
+      permissions,
     };
   }
 

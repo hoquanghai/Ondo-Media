@@ -25,7 +25,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-[hsl(var(--border))] flex items-center justify-around z-50 md:hidden pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex items-center justify-around z-50 md:hidden pb-[env(safe-area-inset-bottom)]"
       aria-label="モバイルナビゲーション"
       style={{ height: "calc(4rem + env(safe-area-inset-bottom, 0px))" }}
     >
@@ -44,8 +44,8 @@ export function BottomNav() {
               className={cn(
                 "flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors",
                 item.action === "createPost"
-                  ? "text-[hsl(var(--primary))]"
-                  : "text-[hsl(var(--muted-foreground))]",
+                  ? "text-[#1e3a8a]"
+                  : "text-gray-400",
               )}
               onClick={() => {
                 // Phase 04 で投稿作成モーダルを開く
@@ -70,8 +70,8 @@ export function BottomNav() {
             className={cn(
               "flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors",
               isActive
-                ? "text-[hsl(var(--primary))]"
-                : "text-[hsl(var(--muted-foreground))]",
+                ? "text-[#1e3a8a]"
+                : "text-gray-400",
             )}
           >
             <item.icon className="h-5 w-5" />

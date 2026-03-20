@@ -80,7 +80,7 @@ export const useSurveyStore = create<SurveyState & SurveyActions>(
           surveys:
             page === 1 ? data.items : [...get().surveys, ...data.items],
           isLoading: false,
-          hasMore: page < data.totalPages,
+          hasMore: page < (data.meta?.totalPages ?? 0),
           page,
         });
       } catch {

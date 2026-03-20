@@ -9,10 +9,16 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import * as Minio from 'minio';
+import { ConfigService } from '@nestjs/config';
+import { v4 as uuidv4 } from 'uuid';
 import {
   CurrentUser,
   MESSAGE_PATTERNS,
@@ -23,12 +29,31 @@ import {
 
 @Controller('users')
 export class UserController {
+  private minioClient: Minio.Client;
+  private readonly bucket: string;
+
   constructor(
     @Inject(SERVICE_TOKENS.USER_SERVICE)
     private readonly userClient: ClientProxy,
     @Inject(SERVICE_TOKENS.POST_SERVICE)
     private readonly postClient: ClientProxy,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.bucket = this.config.get<string>('MINIO_BUCKET', 'social-uploads');
+    this.minioClient = new Minio.Client({
+      endPoint: this.config.get<string>('MINIO_ENDPOINT', 'localhost'),
+      port: parseInt(this.config.get<string>('MINIO_PORT', '9000'), 10),
+      useSSL: this.config.get<string>('MINIO_USE_SSL', 'false') === 'true',
+      accessKey: this.config.get<string>('MINIO_ACCESS_KEY', 'minioadmin'),
+      secretKey: this.config.get<string>('MINIO_SECRET_KEY', 'minioadmin'),
+    });
+    // Ensure bucket exists
+    this.minioClient.bucketExists(this.bucket).then((exists) => {
+      if (!exists) {
+        this.minioClient.makeBucket(this.bucket).catch(() => {});
+      }
+    }).catch(() => {});
+  }
 
   // ─── User List (any authenticated user) ───
 
@@ -65,7 +90,7 @@ export class UserController {
   @Patch('me')
   async updateMe(
     @CurrentUser() user: any,
-    @Body() body: { displayName?: string; bio?: string; avatarUrl?: string },
+    @Body() body: Record<string, any>,
   ) {
     return firstValueFrom(
       this.userClient.send(MESSAGE_PATTERNS.USER_UPDATE_PROFILE, {
@@ -73,6 +98,52 @@ export class UserController {
         ...body,
       }),
     );
+  }
+
+  // ─── Upload avatar ───
+
+  @Post('me/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAvatar(
+    @CurrentUser() user: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      return { success: false, message: 'ファイルが選択されていません' };
+    }
+
+    // Validate image type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return { success: false, message: '画像ファイルのみアップロードできます' };
+    }
+
+    // Upload to MinIO
+    const ext = file.originalname.split('.').pop() || 'jpg';
+    const objectName = `avatars/${user.shainBangou}_${uuidv4().slice(0, 8)}.${ext}`;
+
+    await this.minioClient.putObject(
+      this.bucket,
+      objectName,
+      file.buffer,
+      file.size,
+      { 'Content-Type': file.mimetype },
+    );
+
+    // Build public URL
+    const minioEndpoint = this.config.get<string>('MINIO_ENDPOINT', 'localhost');
+    const minioPort = this.config.get<string>('MINIO_PORT', '9000');
+    const url = `http://${minioEndpoint}:${minioPort}/${this.bucket}/${objectName}`;
+
+    // Update user's sns_avatar_url
+    await firstValueFrom(
+      this.userClient.send(MESSAGE_PATTERNS.USER_UPDATE_PROFILE, {
+        id: user.shainBangou,
+        snsAvatarUrl: url,
+      }),
+    );
+
+    return { url };
   }
 
   // ─── Get current user's stats ───

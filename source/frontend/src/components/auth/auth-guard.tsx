@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -17,14 +16,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 w-80">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-8 w-1/2" />
-          <p className="text-sm text-[hsl(var(--muted-foreground))] text-center">
-            読み込み中...
-          </p>
+      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f7]">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[#1e3a8a]" />
+          <p className="mt-3 text-sm text-gray-400">読み込み中...</p>
         </div>
       </div>
     );

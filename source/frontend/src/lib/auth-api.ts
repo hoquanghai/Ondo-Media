@@ -13,14 +13,14 @@ import type { CurrentUser } from "@/types/user";
  * 認証 API サービス
  */
 export const authApi = {
-  /** 社員番号・パスワードでログイン */
+  /** 社員番号（lastNumber）でログイン */
   loginWithShainBangou(
-    shainBangou: number,
+    lastNumber: number,
     password?: string,
     rememberMe?: boolean,
   ) {
     return api.post<LoginResponse>(API_ENDPOINTS.AUTH_LOGIN, {
-      shainBangou,
+      lastNumber,
       password,
       rememberMe,
     } satisfies LoginRequest);
@@ -30,7 +30,7 @@ export const authApi = {
   loginWithMicrosoft(code: string, redirectUri: string) {
     return api.post<LoginResponse>(`${API_ENDPOINTS.AUTH_LOGIN}/microsoft`, {
       code,
-      redirect_uri: redirectUri,
+      redirectUri,
     } satisfies MicrosoftLoginRequest);
   },
 
@@ -53,7 +53,7 @@ export const authApi = {
   /** トークンをリフレッシュ */
   refreshToken(refreshToken: string) {
     return api.post<RefreshTokenResponse>(API_ENDPOINTS.AUTH_REFRESH, {
-      refresh_token: refreshToken,
+      refreshToken: refreshToken,
     });
   },
 

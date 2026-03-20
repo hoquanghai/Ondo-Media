@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 type AvatarSize = "sm" | "md" | "lg" | "xl";
@@ -29,8 +29,6 @@ const textSizeClasses: Record<AvatarSize, string> = {
 
 function getInitials(name: string): string {
   if (!name) return "?";
-  // For Japanese names, take first character
-  // For Western names, take first letter of first and last name
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
@@ -45,22 +43,38 @@ export function UserAvatar({
   size = "md",
   className,
 }: UserAvatarProps) {
+  const [imgError, setImgError] = useState(false);
   const initials = getInitials(shainName);
   const imageUrl = snsAvatarUrl || avatar || null;
+  const showImage = imageUrl && !imgError;
 
   return (
-    <Avatar className={cn(sizeClasses[size], className)}>
-      {imageUrl && (
-        <AvatarImage src={imageUrl} alt={shainName} />
+    <div
+      className={cn(
+        "relative rounded-full overflow-hidden flex-shrink-0",
+        sizeClasses[size],
+        !showImage && "bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6]",
+        className,
       )}
-      <AvatarFallback
-        className={cn(
-          "bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] text-white font-bold",
-          textSizeClasses[size],
-        )}
-      >
-        {initials}
-      </AvatarFallback>
-    </Avatar>
+    >
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={shainName}
+          className="h-full w-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <div
+          className={cn(
+            "h-full w-full flex items-center justify-center bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] text-white font-bold",
+            textSizeClasses[size],
+          )}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
   );
 }

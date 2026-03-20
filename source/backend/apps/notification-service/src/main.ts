@@ -10,7 +10,10 @@ async function bootstrap() {
   // Also connect as TCP microservice
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.TCP,
-    options: { host: '0.0.0.0', port: 3006 },
+    options: {
+      host: '0.0.0.0',
+      port: parseInt(process.env.NOTIFICATION_SERVICE_PORT ?? '3016', 10),
+    },
   });
 
   // Configure Socket.IO adapter
@@ -20,7 +23,9 @@ async function bootstrap() {
   app.enableCors({ origin: '*', credentials: true });
 
   await app.startAllMicroservices();
-  await app.listen(3016);
-  console.log('Notification service: TCP on 3006, WebSocket on 3016');
+
+  const wsPort = parseInt(process.env.NOTIFICATION_WS_PORT ?? '3026', 10);
+  await app.listen(wsPort);
+  console.log(`Notification service: TCP on ${process.env.NOTIFICATION_SERVICE_PORT ?? '3016'}, WebSocket on ${wsPort}`);
 }
 bootstrap();

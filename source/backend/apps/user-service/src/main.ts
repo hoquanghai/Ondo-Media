@@ -7,10 +7,13 @@ async function bootstrap() {
     UserModule,
     {
       transport: Transport.TCP,
-      options: { host: 'localhost', port: 3002 },
+      options: {
+        host: '0.0.0.0',
+        port: parseInt(process.env.USER_SERVICE_PORT ?? '3012', 10),
+      },
     },
   );
   await app.listen();
-  console.log('User Service is running on port 3002');
+  console.log(`User Service is running on TCP port ${process.env.USER_SERVICE_PORT ?? '3012'}`);
 }
 bootstrap();

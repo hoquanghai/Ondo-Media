@@ -14,8 +14,8 @@ import { AuthService } from '../auth.service';
 export class LocalAuthStrategy {
   constructor(private readonly authService: AuthService) {}
 
-  async validate(shainBangou: number, password?: string) {
-    const result = await this.authService.login({ shainBangou, password });
+  async validate(lastNumber: number, password?: string) {
+    const result = await this.authService.login({ lastNumber, password });
     if (!result) {
       throw new UnauthorizedException(
         '社員番号またはパスワードが正しくありません',

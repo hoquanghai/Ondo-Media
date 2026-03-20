@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Search, Menu, LogOut, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +24,8 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
   const logout = useAuthStore((s) => s.logout);
 
   return (
-    <header className="h-16 bg-white border-b border-[hsl(var(--border))] flex items-center justify-between px-4 gap-4 sticky top-0 z-30">
-      {/* Left: Menu button + Search */}
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-50">
+      {/* Left: Menu button (mobile/tablet only) */}
       <div className="flex items-center gap-3 flex-1">
         {showMenuButton && (
           <Button
@@ -37,39 +37,45 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" aria-label="検索">
-          <Search className="h-5 w-5" />
-        </Button>
       </div>
 
-      {/* Right: Notifications + User */}
+      {/* Right: Search + Notifications + Settings + User */}
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" aria-label="検索">
+          <Search className="h-5 w-5 text-gray-600" />
+        </Button>
+
         {/* Notification Bell */}
         <NotificationBell />
+
+        {/* Settings button */}
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/settings" aria-label="設定">
+            <Settings className="h-5 w-5 text-gray-600" />
+          </Link>
+        </Button>
 
         {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-8 w-8 rounded-full"
+              className="relative h-9 w-9 rounded-full p-0"
               aria-label="ユーザーメニュー"
             >
-              <Avatar className="h-8 w-8">
-                <AvatarImage
-                  src={user?.avatar ?? undefined}
-                  alt={user?.shainName ?? ""}
-                />
-                <AvatarFallback className="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] text-white text-sm">
-                  {user?.shainName?.charAt(0) ?? "?"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                shainName={user?.shainName ?? ""}
+                avatar={user?.avatar}
+                snsAvatarUrl={user?.snsAvatarUrl}
+                size="sm"
+                className="h-9 w-9"
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user?.shainName}</p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              <p className="text-sm font-medium text-gray-900">{user?.shainName}</p>
+              <p className="text-xs text-gray-500">
                 {user?.shainGroup}
               </p>
             </div>
@@ -89,7 +95,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => logout()}
-              className="flex items-center gap-2 text-[hsl(var(--destructive))] cursor-pointer"
+              className="flex items-center gap-2 text-red-600 cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
               ログアウト

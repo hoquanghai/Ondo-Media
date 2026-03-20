@@ -46,6 +46,7 @@ export const MESSAGE_PATTERNS = {
   POST_FIND_BY_USER_ID: { cmd: 'post.findByUserId' },
   POST_GET_LIKES: { cmd: 'post.getLikes' },
   POST_UPDATE_COMMENT: { cmd: 'post.updateComment' },
+  POST_CREATE_FILES: { cmd: 'post.createFiles' },
 
   // Announcement Service
   ANNOUNCEMENT_FIND_ALL: { cmd: 'announcement.findAll' },

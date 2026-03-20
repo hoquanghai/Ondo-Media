@@ -26,7 +26,7 @@ interface PostActions {
   fetchPosts: (date?: string, page?: number) => Promise<void>;
   fetchDateCounts: (startDate: string, endDate: string) => Promise<void>;
   setCurrentDate: (date: string) => void;
-  createPost: (formData: FormData) => Promise<void>;
+  createPost: (data: { content: string; postDate: string; title?: string; files?: File[] }) => Promise<void>;
   likePost: (postId: string) => Promise<void>;
   unlikePost: (postId: string) => Promise<void>;
   toggleLike: (postId: string) => Promise<void>;
@@ -36,6 +36,8 @@ interface PostActions {
   prependNewPost: (post: Post) => void;
   setHasNewPosts: (value: boolean) => void;
   loadMore: () => Promise<void>;
+  handleRealtimeLike: (postId: string, likeCount: number) => void;
+  handleRealtimeComment: (postId: string, commentCount: number) => void;
 }
 
 export type PostStore = PostState & PostActions;
@@ -80,7 +82,7 @@ export const usePostStore = create<PostStore>((set, get) => ({
         set({
           dateGroups: newGroups,
           isLoading: false,
-          hasMore: page < data.totalPages,
+          hasMore: page < (data.meta?.totalPages ?? 0),
           page,
         });
       } else {
@@ -105,7 +107,7 @@ export const usePostStore = create<PostStore>((set, get) => ({
         set({
           dateGroups: merged,
           isLoading: false,
-          hasMore: page < data.totalPages,
+          hasMore: page < (data.meta?.totalPages ?? 0),
           page,
         });
       }
@@ -132,10 +134,10 @@ export const usePostStore = create<PostStore>((set, get) => ({
     get().fetchPosts(date, 1);
   },
 
-  createPost: async (formData: FormData) => {
+  createPost: async (data: { content: string; postDate: string; title?: string; files?: File[] }) => {
     set({ isCreating: true });
     try {
-      const post = await postApi.createPost(formData);
+      const post = await postApi.createPost(data);
       get().prependNewPost(post);
     } finally {
       set({ isCreating: false });
@@ -290,5 +292,27 @@ export const usePostStore = create<PostStore>((set, get) => ({
     const { page, hasMore, isLoading, currentDate } = get();
     if (!hasMore || isLoading) return;
     await get().fetchPosts(currentDate, page + 1);
+  },
+
+  handleRealtimeLike: (postId: string, likeCount: number) => {
+    set((state) => ({
+      dateGroups: state.dateGroups.map((group) => ({
+        ...group,
+        posts: group.posts.map((post) =>
+          post.id === postId ? { ...post, likeCount } : post,
+        ),
+      })),
+    }));
+  },
+
+  handleRealtimeComment: (postId: string, commentCount: number) => {
+    set((state) => ({
+      dateGroups: state.dateGroups.map((group) => ({
+        ...group,
+        posts: group.posts.map((post) =>
+          post.id === postId ? { ...post, commentCount } : post,
+        ),
+      })),
+    }));
   },
 }));

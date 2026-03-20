@@ -15,7 +15,7 @@ import { NotificationGatewayController } from './notification.controller';
           transport: Transport.TCP,
           options: {
             host: config.get<string>('NOTIFICATION_SERVICE_HOST', 'localhost'),
-            port: parseInt(config.get<string>('NOTIFICATION_SERVICE_PORT', '3006'), 10),
+            port: parseInt(config.get<string>('NOTIFICATION_SERVICE_PORT', '3016'), 10),
           },
         }),
       },

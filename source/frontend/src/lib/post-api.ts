@@ -37,12 +37,29 @@ export const postApi = {
   },
 
   /**
-   * 投稿を作成 (multipart/form-data)
+   * 投稿を作成（ファイル添付対応）
    */
-  createPost(formData: FormData): Promise<Post> {
-    return api.request<Post>(API_ENDPOINTS.POSTS, {
-      method: "POST",
-      body: formData,
+  createPost(data: {
+    content: string;
+    postDate: string;
+    title?: string;
+    files?: File[];
+  }): Promise<Post> {
+    if (data.files && data.files.length > 0) {
+      const formData = new FormData();
+      formData.append("content", data.content);
+      formData.append("postDate", data.postDate);
+      if (data.title) formData.append("title", data.title);
+      data.files.forEach((f) => formData.append("files", f));
+      return api.request<Post>(API_ENDPOINTS.POSTS, {
+        method: "POST",
+        body: formData,
+      });
+    }
+    return api.post<Post>(API_ENDPOINTS.POSTS, {
+      content: data.content,
+      postDate: data.postDate,
+      title: data.title,
     });
   },
 
@@ -63,8 +80,8 @@ export const postApi = {
   /**
    * いいねする
    */
-  likePost(id: string): Promise<void> {
-    return api.post<void>(API_ENDPOINTS.POST_LIKE(id));
+  likePost(id: string, reactionType?: string): Promise<void> {
+    return api.post<void>(API_ENDPOINTS.POST_LIKE(id), { reactionType: reactionType ?? "like" });
   },
 
   /**

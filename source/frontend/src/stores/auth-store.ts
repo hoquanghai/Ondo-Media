@@ -66,13 +66,15 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             rememberMe,
           );
           const user: CurrentUser = {
-            shainBangou: data.user.shainBangou,
-            shainName: data.user.shainName,
-            shainGroup: data.user.shainGroup,
-            email: data.user.email,
-            avatar: data.user.avatar,
-            hasPassword: data.user.hasPassword,
-            permissions: data.user.permissions,
+            shainBangou: data.user?.shainBangou ?? 0,
+            lastNumber: data.user?.lastNumber ?? 0,
+            shainName: data.user?.shainName ?? "",
+            shainGroup: data.user?.shainGroup ?? "",
+            email: data.user?.email ?? "",
+            avatar: data.user?.avatar ?? data.user?.avatarUrl ?? "",
+            snsAvatarUrl: data.user?.snsAvatarUrl ?? undefined,
+            hasPassword: data.user?.hasPassword ?? false,
+            permissions: data.user?.permissions ?? [],
           };
           set({
             accessToken: data.accessToken,
