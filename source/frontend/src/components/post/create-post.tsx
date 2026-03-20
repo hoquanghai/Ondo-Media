@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import {
   ImageIcon,
@@ -101,6 +101,15 @@ export function CreatePost() {
       };
     });
   }, [files]);
+
+  // Cleanup Object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      previews.forEach((p) => {
+        if (p.url) URL.revokeObjectURL(p.url);
+      });
+    };
+  }, [previews]);
 
   const imageAndVideoFiles = previews.filter((p) => p.isImage || p.isVideo);
   const documentFiles = previews.filter((p) => !p.isImage && !p.isVideo);

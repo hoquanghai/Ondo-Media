@@ -45,7 +45,7 @@ export class UserService {
     const sortOrder = data.sortOrder ?? 'ASC';
 
     const qb = this.userRepo.createQueryBuilder('user');
-    qb.where('user.sns_is_active = :isActive', { isActive: true });
+    qb.where('user.snsIsActive = :isActive', { isActive: true });
 
     if (data.search) {
       qb.andWhere(
@@ -182,14 +182,16 @@ export class UserService {
       throw new RpcException({ statusCode: 404, message: 'ユーザーが見つかりません' });
     }
 
-    if (data.displayName !== undefined) user.shainName = data.displayName;
-    if (data.department !== undefined) user.shainGroup = data.department;
-    if (data.position !== undefined) user.shainYaku = data.position;
-    if (data.isActive !== undefined) user.snsIsActive = data.isActive;
-    if (data.bio !== undefined) user.snsBio = data.bio;
+    const updateData: Record<string, any> = {};
+    if (data.displayName !== undefined) updateData.shainName = data.displayName;
+    if (data.department !== undefined) updateData.shainGroup = data.department;
+    if (data.position !== undefined) updateData.shainYaku = data.position;
+    if (data.isActive !== undefined) updateData.snsIsActive = data.isActive;
+    if (data.bio !== undefined) updateData.snsBio = data.bio;
 
-    const saved = await this.userRepo.save(user);
-    return this.sanitizeUser(saved);
+    await this.userRepo.update({ shainBangou: data.id }, updateData);
+    const updated = await this.userRepo.findOne({ where: { shainBangou: data.id } });
+    return this.sanitizeUser(updated!);
   }
 
   async deactivate(data: { id: number }) {
@@ -200,8 +202,7 @@ export class UserService {
       throw new RpcException({ statusCode: 404, message: 'ユーザーが見つかりません' });
     }
 
-    user.snsIsActive = false;
-    await this.userRepo.save(user);
+    await this.userRepo.update({ shainBangou: data.id }, { snsIsActive: false });
     return { deleted: true };
   }
 
@@ -242,28 +243,28 @@ export class UserService {
       // Posts this month
       this.postRepo
         .createQueryBuilder('post')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('post.is_deleted = :isDel', { isDel: false })
-        .andWhere('post.post_date >= :start', { start: startOfMonthStr })
+        .where('post.userId = :userId', { userId })
+        .andWhere('post.isDeleted = :isDel', { isDel: false })
+        .andWhere('post.postDate >= :start', { start: startOfMonthStr })
         .getCount(),
 
       // Active days in last 30 days
       this.postRepo
         .createQueryBuilder('post')
-        .select('CAST(post.post_date AS DATE)', 'postDay')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('post.is_deleted = :isDel', { isDel: false })
-        .andWhere('post.post_date >= :start', { start: thirtyDaysAgoStr })
-        .groupBy('CAST(post.post_date AS DATE)')
+        .select('CAST(post.postDate AS DATE)', 'postDay')
+        .where('post.userId = :userId', { userId })
+        .andWhere('post.isDeleted = :isDel', { isDel: false })
+        .andWhere('post.postDate >= :start', { start: thirtyDaysAgoStr })
+        .groupBy('CAST(post.postDate AS DATE)')
         .getRawMany(),
 
       // Streaks: all distinct post dates descending
       this.postRepo
         .createQueryBuilder('post')
-        .select('CAST(post.post_date AS DATE)', 'postDay')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('post.is_deleted = :isDel', { isDel: false })
-        .groupBy('CAST(post.post_date AS DATE)')
+        .select('CAST(post.postDate AS DATE)', 'postDay')
+        .where('post.userId = :userId', { userId })
+        .andWhere('post.isDeleted = :isDel', { isDel: false })
+        .groupBy('CAST(post.postDate AS DATE)')
         .orderBy('postDay', 'DESC')
         .getRawMany(),
 
@@ -271,30 +272,30 @@ export class UserService {
       this.likeRepo
         .createQueryBuilder('like')
         .innerJoin('like.post', 'post')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('like.is_deleted = :isDel', { isDel: false })
-        .andWhere('post.is_deleted = :isDel2', { isDel2: false })
+        .where('post.userId = :userId', { userId })
+        .andWhere('like.isDeleted = :isDel', { isDel: false })
+        .andWhere('post.isDeleted = :isDel2', { isDel2: false })
         .getCount(),
 
       // Total comments received
       this.commentRepo
         .createQueryBuilder('comment')
         .innerJoin('comment.post', 'post')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('comment.user_id != :userId', { userId })
-        .andWhere('comment.is_deleted = :isDel', { isDel: false })
-        .andWhere('post.is_deleted = :isDel2', { isDel2: false })
+        .where('post.userId = :userId', { userId })
+        .andWhere('comment.userId != :userId', { userId })
+        .andWhere('comment.isDeleted = :isDel', { isDel: false })
+        .andWhere('post.isDeleted = :isDel2', { isDel2: false })
         .getCount(),
 
       // Posted days this month (for missed days calc)
       this.postRepo
         .createQueryBuilder('post')
-        .select('CAST(post.post_date AS DATE)', 'postDay')
-        .where('post.user_id = :userId', { userId })
-        .andWhere('post.is_deleted = :isDel', { isDel: false })
-        .andWhere('post.post_date >= :start', { start: startOfMonthStr })
-        .andWhere('post.post_date <= :end', { end: todayStr })
-        .groupBy('CAST(post.post_date AS DATE)')
+        .select('CAST(post.postDate AS DATE)', 'postDay')
+        .where('post.userId = :userId', { userId })
+        .andWhere('post.isDeleted = :isDel', { isDel: false })
+        .andWhere('post.postDate >= :start', { start: startOfMonthStr })
+        .andWhere('post.postDate <= :end', { end: todayStr })
+        .groupBy('CAST(post.postDate AS DATE)')
         .getRawMany(),
 
       // Last post date
@@ -336,14 +337,14 @@ export class UserService {
 
     const qb = this.postRepo.createQueryBuilder('post');
     qb.leftJoinAndSelect('post.files', 'files');
-    qb.where('post.user_id = :userId', { userId: data.userId });
-    qb.andWhere('post.is_deleted = :isDel', { isDel: false });
+    qb.where('post.userId = :userId', { userId: data.userId });
+    qb.andWhere('post.isDeleted = :isDel', { isDel: false });
 
     if (data.date) {
-      qb.andWhere('post.post_date = :date', { date: data.date });
+      qb.andWhere('post.postDate = :date', { date: data.date });
     }
 
-    qb.orderBy('post.created_at', 'DESC');
+    qb.orderBy('post.createdAt', 'DESC');
     qb.skip((page - 1) * limit).take(limit);
 
     const [items, total] = await qb.getManyAndCount();
@@ -432,8 +433,8 @@ export class UserService {
       .createQueryBuilder()
       .update(UserPermission)
       .set({ isDeleted: true })
-      .where('user_id = :userId', { userId: data.userId })
-      .andWhere('is_deleted = :isDel', { isDel: false })
+      .where('userId = :userId', { userId: data.userId })
+      .andWhere('isDeleted = :isDel', { isDel: false })
       .execute();
 
     if (data.permissionIds.length === 0) return [];

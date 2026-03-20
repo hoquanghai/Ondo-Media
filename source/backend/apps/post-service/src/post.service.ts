@@ -460,14 +460,9 @@ export class PostService {
     });
     const saved = await this.commentRepo.save(comment);
 
-    // Increment denormalized count
-    await this.postRepo.increment({ id: data.postId }, 'commentCount', 1);
-
-    // Get the updated post to read the authoritative comment count
-    const updatedPost = await this.postRepo.findOne({
-      where: { id: data.postId },
-      select: ['id', 'commentCount'],
-    });
+    // Recalculate actual count to avoid drift
+    const actualCount = await this.commentRepo.count({ where: { postId: data.postId, isDeleted: false } });
+    await this.postRepo.update({ id: data.postId }, { commentCount: actualCount });
 
     const fullComment = await this.commentRepo.findOne({
       where: { id: saved.id },
@@ -479,7 +474,7 @@ export class PostService {
       commentId: saved.id,
       authorId: data.userId,
       postAuthorId: post.userId,
-      commentCount: updatedPost?.commentCount ?? post.commentCount + 1,
+      commentCount: actualCount,
       comment: fullComment,
     }).catch(() => {});
 
@@ -537,16 +532,9 @@ export class PostService {
     comment.isDeleted = true;
     await this.commentRepo.save(comment);
 
-    // Decrement denormalized count
-    await this.postRepo.decrement({ id: comment.postId }, 'commentCount', 1);
-
-    // Ensure count doesn't go below 0
-    await this.postRepo
-      .createQueryBuilder()
-      .update(Post)
-      .set({ commentCount: 0 })
-      .where('id = :id AND comment_count < 0', { id: comment.postId })
-      .execute();
+    // Recalculate actual count to avoid drift
+    const actualCount = await this.commentRepo.count({ where: { postId: comment.postId, isDeleted: false } });
+    await this.postRepo.update({ id: comment.postId }, { commentCount: actualCount });
 
     return { deleted: true };
   }

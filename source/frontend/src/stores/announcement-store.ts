@@ -69,7 +69,7 @@ export const useAnnouncementStore = create<
   },
 
   markAsRead: async (id) => {
-    await api.patch(`/announcements/${id}/read`);
+    await api.post(`/announcements/${id}/read`, {});
     set((state) => ({
       announcements: state.announcements.map((a) =>
         a.id === id ? { ...a, isRead: true } : a

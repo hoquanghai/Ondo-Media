@@ -24,8 +24,8 @@ export const postApi = {
    */
   getDateCounts(startDate: string, endDate: string): Promise<PostDateCount[]> {
     return api.get<PostDateCount[]>(API_ENDPOINTS.POST_DATES, {
-      start_date: startDate,
-      end_date: endDate,
+      startDate: startDate,
+      endDate: endDate,
     });
   },
 
@@ -67,7 +67,7 @@ export const postApi = {
    * 投稿を更新
    */
   updatePost(id: string, data: { content: string; postDate?: string }): Promise<Post> {
-    return api.put<Post>(API_ENDPOINTS.POST_BY_ID(id), data);
+    return api.patch<Post>(API_ENDPOINTS.POST_BY_ID(id), data);
   },
 
   /**

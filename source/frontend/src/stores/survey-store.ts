@@ -104,7 +104,7 @@ export const useSurveyStore = create<SurveyState & SurveyActions>(
     },
 
     submitResponse: async (surveyId, answers) => {
-      await api.post(`/surveys/${surveyId}/responses`, { answers });
+      await api.post(`/surveys/${surveyId}/respond`, { answers });
       get().removeSurveyFromList(surveyId);
     },
 

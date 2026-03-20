@@ -84,10 +84,10 @@ export class SurveyService {
 
     const qb = this.surveyRepo
       .createQueryBuilder('s')
-      .where('s.is_deleted = :isDel', { isDel: false });
+      .where('s.isDeleted = :isDel', { isDel: false });
 
     if (data.isActive !== undefined) {
-      qb.andWhere('s.is_active = :isActive', { isActive: data.isActive });
+      qb.andWhere('s.isActive = :isActive', { isActive: data.isActive });
     }
 
     // If userId is provided, exclude surveys the user has already responded to
@@ -97,9 +97,9 @@ export class SurveyService {
           .subQuery()
           .select('1')
           .from(SurveyResponse, 'sr')
-          .where('sr.survey_id = s.id')
-          .andWhere('sr.user_id = :respUserId')
-          .andWhere('sr.is_deleted = :srDel')
+          .where('sr.surveyId = s.id')
+          .andWhere('sr.userId = :respUserId')
+          .andWhere('sr.isDeleted = :srDel')
           .getQuery();
         return `NOT EXISTS ${subQuery}`;
       });
@@ -107,7 +107,7 @@ export class SurveyService {
       qb.setParameter('srDel', false);
     }
 
-    qb.orderBy('s.created_at', 'DESC')
+    qb.orderBy('s.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -161,8 +161,8 @@ export class SurveyService {
     // Check if there are already responses — if so, only allow limited updates
     const hasResponses = await this.responseRepo
       .createQueryBuilder('r')
-      .where('r.survey_id = :surveyId', { surveyId: data.id })
-      .andWhere('r.is_deleted = :isDel', { isDel: false })
+      .where('r.surveyId = :surveyId', { surveyId: data.id })
+      .andWhere('r.isDeleted = :isDel', { isDel: false })
       .getCount();
 
     if (hasResponses > 0 && (data.startsAt || data.endsAt)) {
@@ -227,9 +227,9 @@ export class SurveyService {
     // Check if already responded
     const existing = await this.responseRepo
       .createQueryBuilder('r')
-      .where('r.survey_id = :surveyId', { surveyId: data.surveyId })
-      .andWhere('r.user_id = :userId', { userId: data.userId })
-      .andWhere('r.is_deleted = :isDel', { isDel: false })
+      .where('r.surveyId = :surveyId', { surveyId: data.surveyId })
+      .andWhere('r.userId = :userId', { userId: data.userId })
+      .andWhere('r.isDeleted = :isDel', { isDel: false })
       .getCount();
 
     if (existing > 0) {
@@ -308,9 +308,9 @@ export class SurveyService {
   async hasResponded(data: { surveyId: string; userId: number }): Promise<{ responded: boolean }> {
     const count = await this.responseRepo
       .createQueryBuilder('r')
-      .where('r.survey_id = :surveyId', { surveyId: data.surveyId })
-      .andWhere('r.user_id = :userId', { userId: data.userId })
-      .andWhere('r.is_deleted = :isDel', { isDel: false })
+      .where('r.surveyId = :surveyId', { surveyId: data.surveyId })
+      .andWhere('r.userId = :userId', { userId: data.userId })
+      .andWhere('r.isDeleted = :isDel', { isDel: false })
       .getCount();
 
     return { responded: count > 0 };
@@ -524,9 +524,9 @@ export class SurveyService {
   private async getUniqueRespondentCount(surveyId: string): Promise<number> {
     const result = await this.responseRepo
       .createQueryBuilder('r')
-      .select('COUNT(DISTINCT r.user_id)', 'count')
-      .where('r.survey_id = :surveyId', { surveyId })
-      .andWhere('r.is_deleted = :isDel', { isDel: false })
+      .select('COUNT(DISTINCT r.userId)', 'count')
+      .where('r.surveyId = :surveyId', { surveyId })
+      .andWhere('r.isDeleted = :isDel', { isDel: false })
       .getRawOne();
 
     return parseInt(result?.count ?? '0', 10);

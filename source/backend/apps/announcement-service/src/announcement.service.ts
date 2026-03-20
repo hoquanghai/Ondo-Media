@@ -60,11 +60,11 @@ export class AnnouncementService {
 
     const qb = this.announcementRepo
       .createQueryBuilder('a')
-      .where('a.is_deleted = :isDel', { isDel: false })
-      .andWhere('(a.publish_at IS NULL OR a.publish_at <= :now)', { now })
-      .andWhere('(a.expires_at IS NULL OR a.expires_at >= :now)', { now })
-      .orderBy('a.is_pinned', 'DESC')
-      .addOrderBy('a.created_at', 'DESC')
+      .where('a.isDeleted = :isDel', { isDel: false })
+      .andWhere('(a.publishAt IS NULL OR a.publishAt <= :now)', { now })
+      .andWhere('(a.expiresAt IS NULL OR a.expiresAt >= :now)', { now })
+      .orderBy('a.isPinned', 'DESC')
+      .addOrderBy('a.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
@@ -76,10 +76,10 @@ export class AnnouncementService {
       const announcementIds = items.map((a) => a.id);
       const readStatuses = await this.readStatusRepo
         .createQueryBuilder('rs')
-        .select('rs.announcement_id', 'announcementId')
-        .where('rs.user_id = :userId', { userId: data.userId })
-        .andWhere('rs.announcement_id IN (:...ids)', { ids: announcementIds })
-        .andWhere('rs.is_deleted = :isDel', { isDel: false })
+        .select('rs.announcementId', 'announcementId')
+        .where('rs.userId = :userId', { userId: data.userId })
+        .andWhere('rs.announcementId IN (:...ids)', { ids: announcementIds })
+        .andWhere('rs.isDeleted = :isDel', { isDel: false })
         .getRawMany();
 
       const readSet = new Set(readStatuses.map((r) => r.announcementId));
@@ -205,19 +205,19 @@ export class AnnouncementService {
 
     const totalCount = await this.announcementRepo
       .createQueryBuilder('a')
-      .where('a.is_deleted = :isDel', { isDel: false })
-      .andWhere('(a.publish_at IS NULL OR a.publish_at <= :now)', { now })
-      .andWhere('(a.expires_at IS NULL OR a.expires_at >= :now)', { now })
+      .where('a.isDeleted = :isDel', { isDel: false })
+      .andWhere('(a.publishAt IS NULL OR a.publishAt <= :now)', { now })
+      .andWhere('(a.expiresAt IS NULL OR a.expiresAt >= :now)', { now })
       .getCount();
 
     const readCount = await this.readStatusRepo
       .createQueryBuilder('rs')
       .innerJoin('rs.announcement', 'a')
-      .where('rs.user_id = :userId', { userId: data.userId })
-      .andWhere('rs.is_deleted = :isDel', { isDel: false })
-      .andWhere('a.is_deleted = :aIsDel', { aIsDel: false })
-      .andWhere('(a.publish_at IS NULL OR a.publish_at <= :now)', { now })
-      .andWhere('(a.expires_at IS NULL OR a.expires_at >= :now)', { now })
+      .where('rs.userId = :userId', { userId: data.userId })
+      .andWhere('rs.isDeleted = :isDel', { isDel: false })
+      .andWhere('a.isDeleted = :aIsDel', { aIsDel: false })
+      .andWhere('(a.publishAt IS NULL OR a.publishAt <= :now)', { now })
+      .andWhere('(a.expiresAt IS NULL OR a.expiresAt >= :now)', { now })
       .getCount();
 
     return { unreadCount: totalCount - readCount };

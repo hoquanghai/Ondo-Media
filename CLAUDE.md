@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-日報（Nippo）は、音頭金属株式会社の100〜150名規模の社内SNSシステムです。NestJSマイクロサービス（バックエンド）とNext.js 15（フロントエンド）で構成され、オンプレミス + VPN環境にDocker Composeでデプロイします。すべてのUIテキストは日本語で実装してください。
+Nippo is an internal social network system for Ondo Metals Co., Ltd., serving 100–150 employees. Built with NestJS microservices (backend) and Next.js 15 (frontend), deployed on-premises + VPN via Docker Compose. **All UI text must be in Japanese.**
 
 ---
 
@@ -11,12 +11,12 @@
 ### Skills (`.claude/skills/`)
 | Skill | Trigger | Description |
 |-------|---------|-------------|
-| `code-review` | コードレビュー依頼 | Backend/Frontend review checklist |
-| `add-feature` | 新機能追加 | Feature spec → Implementation workflow |
-| `fix-bug` | バグ報告 | Debug patterns & common fixes |
-| `refactor` | リファクタリング | Code cleanup rules |
-| `frontend-design` | UI設計 | Design system, Figma reference, responsive rules |
-| `database` | DB操作 | Schema changes, migrations, cross-DB queries |
+| `code-review` | Code review request | Backend/Frontend review checklist |
+| `add-feature` | New feature request | Feature spec → Implementation workflow |
+| `fix-bug` | Bug report | Debug patterns & common fixes |
+| `refactor` | Refactoring request | Code cleanup rules |
+| `frontend-design` | UI design | Design system, Figma reference, responsive rules |
+| `database` | DB operations | Schema changes, migrations, cross-DB queries |
 
 ### Installed Plugins
 - **code-review** — Automated code review with project-specific checklist
@@ -42,24 +42,24 @@
 
 ```
 Internal_Social/
-├── CLAUDE.md                          ← このファイル（AI向けガイド）
-├── PROJECT_REQUIREMENTS.md            ← プロジェクト要件書
+├── CLAUDE.md                          ← This file (AI guide)
+├── PROJECT_REQUIREMENTS.md            ← Project requirements
 ├── docs/
 │   ├── 00-project-init/
-│   │   └── README.md                 ← プロジェクト初期化チェックリスト
-│   ├── 01-system-design/             ← システム設計ドキュメント
+│   │   └── README.md                 ← Project initialization checklist
+│   ├── 01-system-design/             ← System design documents
 │   │   ├── shared/
-│   │   │   └── conventions.md        ← コーディング規約・命名規約
+│   │   │   └── conventions.md        ← Coding & naming conventions
 │   │   ├── backend/
-│   │   │   ├── database-schema.md    ← DBスキーマ（DDL・インデックス）
-│   │   │   ├── api-endpoints.md      ← 全REST API仕様
-│   │   │   ├── microservices.md      ← マイクロサービス構成
-│   │   │   └── caching-strategy.md   ← Redisキャッシュ戦略
+│   │   │   ├── database-schema.md    ← DB schema (DDL & indexes)
+│   │   │   ├── api-endpoints.md      ← Full REST API specification
+│   │   │   ├── microservices.md      ← Microservice architecture
+│   │   │   └── caching-strategy.md   ← Redis caching strategy
 │   │   └── frontend/
-│   │       ├── nextjs-architecture.md ← Next.js App Router構成
-│   │       ├── routing.md            ← ルーティング設計
-│   │       └── screen-inventory.md   ← 画面一覧
-│   ├── 02-backend/                   ← バックエンド実装ガイド（フェーズ別）
+│   │       ├── nextjs-architecture.md ← Next.js App Router structure
+│   │       ├── routing.md            ← Routing design
+│   │       └── screen-inventory.md   ← Screen inventory
+│   ├── 02-backend/                   ← Backend implementation guide (by phase)
 │   │   ├── phase-01-foundation/
 │   │   ├── phase-02-auth/
 │   │   ├── phase-03-user-management/
@@ -68,7 +68,7 @@ Internal_Social/
 │   │   ├── phase-06-survey/
 │   │   ├── phase-07-notifications/
 │   │   └── phase-08-file-service/
-│   ├── 03-frontend/                  ← フロントエンド実装ガイド（フェーズ別）
+│   ├── 03-frontend/                  ← Frontend implementation guide (by phase)
 │   │   ├── phase-01-setup/
 │   │   ├── phase-02-auth/
 │   │   ├── phase-03-layout/
@@ -79,16 +79,16 @@ Internal_Social/
 │   │   ├── phase-08-admin/
 │   │   └── phase-09-notifications/
 │   ├── 04-testing/
-│   │   └── README.md                ← テスト戦略
+│   │   └── README.md                ← Testing strategy
 │   ├── 05-deployment/
-│   │   └── README.md                ← デプロイメントガイド
-│   └── features/                     ← 将来機能の仕様書
+│   │   └── README.md                ← Deployment guide
+│   └── features/                     ← Future feature specs
 │       ├── teams-integration/spec.md
 │       ├── gamification/spec.md
 │       └── ai-features/spec.md
-└── source/                           ← ソースコード（実装時に作成）
-    ├── backend/                      ← NestJS バックエンド
-    └── frontend/                     ← Next.js フロントエンド
+└── source/                           ← Source code
+    ├── backend/                      ← NestJS backend
+    └── frontend/                     ← Next.js frontend
 ```
 
 ---
@@ -100,15 +100,15 @@ Internal_Social/
 ```bash
 cd source/backend
 
-npm run dev              # 開発サーバー起動（API Gateway）
-npm run dev:all          # 全マイクロサービス起動
-npm test                 # テスト実行
-npm run build            # ビルド
-npm run db:migrate       # マイグレーション実行
-npm run db:migrate:generate  # マイグレーション生成
-npm run db:seed          # 初期データ投入
-npm run infra:up         # Docker インフラ起動（SQL Server, Redis, MinIO）
-npm run infra:down       # Docker インフラ停止
+npm run dev              # Start dev server (API Gateway)
+npm run dev:all          # Start all microservices
+npm test                 # Run tests
+npm run build            # Build
+npm run db:migrate       # Run migrations
+npm run db:migrate:generate  # Generate migration
+npm run db:seed          # Seed initial data
+npm run infra:up         # Start Docker infra (SQL Server, Redis, MinIO)
+npm run infra:down       # Stop Docker infra
 ```
 
 ### Frontend
@@ -116,10 +116,10 @@ npm run infra:down       # Docker インフラ停止
 ```bash
 cd source/frontend
 
-npm run dev              # 開発サーバー起動（http://localhost:3001）
-npm run build            # プロダクションビルド
-npm test                 # テスト実行
-npm run lint             # Lint実行
+npm run dev              # Start dev server (http://localhost:3001)
+npm run build            # Production build
+npm test                 # Run tests
+npm run lint             # Run lint
 ```
 
 ---
@@ -128,124 +128,124 @@ npm run lint             # Lint実行
 
 ### Backend
 
-- **NestJS マイクロサービス**構成、TCP Transport で内部通信
-- API Gateway がHTTPリクエストを受け、各マイクロサービスにTCPで転送
-- サービス: API Gateway, Auth Service, Post Service, Notification Service, File Service
-- TypeORM でSQL Server 2022に接続（Japanese_CI_AS コレーション）
-- Redis でセッション管理・キャッシュ
-- MinIO で画像ファイルを管理
-- Socket.IO でリアルタイム通知
+- **NestJS microservices** with TCP transport for internal communication
+- API Gateway receives HTTP requests and forwards to microservices via TCP
+- Services: API Gateway, Auth Service, Post Service, Notification Service, File Service
+- TypeORM connecting to SQL Server 2022 (Japanese_CI_AS collation)
+- Redis for session management & caching
+- MinIO for file/image storage
+- Socket.IO for real-time notifications
 
 ### Frontend
 
-- **Next.js 15** App Router（Server Components + Client Components）
-- **Tailwind CSS** + **shadcn/ui** でUI構築
-- **TanStack Query** でサーバー状態管理
-- **Zustand** でクライアント状態管理（認証情報、通知バッジ等）
-- レスポンシブデザイン（デスクトップ・タブレット・スマートフォン対応）
+- **Next.js 15** App Router (Server Components + Client Components)
+- **Tailwind CSS** + **shadcn/ui** for UI
+- **TanStack Query** for server state management
+- **Zustand** for client state management (auth, notification badges, etc.)
+- Responsive design (desktop, tablet, mobile)
 
 ### Database
 
-- SQL Server 2022（Japanese_CI_AS コレーション）
-- TypeORM マイグレーションで管理（`synchronize: false`）
-- 論理削除（`is_deleted` カラム）、物理削除は禁止
-- 全テーブルに `created_at`, `updated_at`, `created_by`, `is_deleted` カラム
-- 主キーは `UNIQUEIDENTIFIER` (`NEWID()`)
+- SQL Server 2022 (Japanese_CI_AS collation)
+- Managed via TypeORM migrations (`synchronize: false`)
+- Soft delete (`is_deleted` column) — hard delete is prohibited
+- All tables have `created_at`, `updated_at`, `created_by`, `is_deleted` columns
+- Primary keys are `UNIQUEIDENTIFIER` (`NEWID()`)
 
 ### Infrastructure
 
-- Docker Compose で全サービスを管理
-- Nginx リバースプロキシ（SSL終端）
-- オンプレミスサーバー + VPN アクセスのみ
+- Docker Compose manages all services
+- Nginx reverse proxy (SSL termination)
+- On-premises server + VPN access only
 
 ---
 
 ## Auth Flow
 
-二つの認証方式をサポート:
+Two authentication methods supported:
 
-1. **ローカル認証**: メールアドレス + パスワード（bcryptハッシュ）
-2. **Microsoft 365 SSO**: Azure AD 経由のOAuth 2.0 / OIDC
+1. **Local auth**: Email + password (bcrypt hashed)
+2. **Microsoft 365 SSO**: OAuth 2.0 / OIDC via Azure AD
 
 ```
-[ユーザー] → [Next.js] → [API Gateway] → [Auth Service]
-                                              │
-                                              ├─ ローカル: email/password → JWT発行
-                                              └─ SSO: Azure AD → JIT ユーザー作成 → JWT発行
+[User] → [Next.js] → [API Gateway] → [Auth Service]
+                                           │
+                                           ├─ Local: email/password → issue JWT
+                                           └─ SSO: Azure AD → JIT user creation → issue JWT
 
-JWT: アクセストークン（15分）+ リフレッシュトークン（7日）
+JWT: Access token (15 min) + Refresh token (7 days)
 ```
 
 ---
 
 ## Key Conventions
 
-詳細は `docs/01-system-design/shared/conventions.md` を参照。主要なポイント:
+See `docs/01-system-design/shared/conventions.md` for full details. Key points:
 
-- **DB**: テーブル名は snake_case・複数形、カラム名は snake_case
-- **API**: `/api/v1/{resource}` 形式、kebab-case
-- **コード**: クラスは PascalCase + サフィックス、ファイルは kebab-case
-- **JSON**: プロパティは camelCase、日付は ISO 8601
-- **Git**: Conventional Commits (`feat(post): 投稿作成機能を追加`)
+- **DB**: Table names in snake_case plural, column names in snake_case
+- **API**: `/api/v1/{resource}` format, kebab-case
+- **Code**: Classes in PascalCase + suffix, files in kebab-case
+- **JSON**: Properties in camelCase, dates in ISO 8601
+- **Git**: Conventional Commits (e.g. `feat(post): add post creation feature`)
 
 ---
 
-## Mandatory Rules（必須ルール）
+## Mandatory Rules
 
-### 1. Skills・Plugins の使用は必須
+### 1. Using Skills & Plugins is REQUIRED
 
-新しいタスクや機能要求を受けたとき、**必ず関連する Skills と Plugins を使用すること**。これは任意ではなく**絶対条件**である。
+When receiving any new task or feature request, you **MUST use the relevant Skills and Plugins**. This is **not optional** — it is an absolute requirement.
 
-| タスク種別 | 使用すべき Skill / Plugin |
-|-----------|--------------------------|
-| 新機能追加 | `add-feature` skill → `superpowers:brainstorming` → `superpowers:writing-plans` |
-| バグ修正 | `fix-bug` skill → `superpowers:systematic-debugging` |
-| コードレビュー | `code-review` skill → `superpowers:requesting-code-review` |
-| リファクタリング | `refactor` skill |
-| UI設計・実装 | `frontend-design` skill → Figma MCP |
-| DB操作 | `database` skill |
-| 実装計画の実行 | `superpowers:executing-plans` → `superpowers:subagent-driven-development` |
-| 作業完了前 | `superpowers:verification-before-completion` |
+| Task Type | Required Skill / Plugin |
+|-----------|------------------------|
+| New feature | `add-feature` skill → `superpowers:brainstorming` → `superpowers:writing-plans` |
+| Bug fix | `fix-bug` skill → `superpowers:systematic-debugging` |
+| Code review | `code-review` skill → `superpowers:requesting-code-review` |
+| Refactoring | `refactor` skill |
+| UI design & implementation | `frontend-design` skill → Figma MCP |
+| DB operations | `database` skill |
+| Executing implementation plans | `superpowers:executing-plans` → `superpowers:subagent-driven-development` |
+| Before completing work | `superpowers:verification-before-completion` |
 
-**自分の判断でスキルを省略してはならない。** 「簡単だから不要」「すぐできるから省略」という判断は禁止。
+**You must NEVER skip a skill based on your own judgment.** Reasoning like "it's simple enough" or "I can do it quickly without a skill" is prohibited.
 
-### 2. コンテキスト喪失時のドキュメント再読は必須
+### 2. Re-reading Documentation on Context Loss is REQUIRED
 
-会話が長くなり、以下の情報を忘れた・不明になった場合、**必ず該当ドキュメントを読み直すこと**：
+When the conversation grows long and you lose track of or become uncertain about any of the following, you **MUST re-read the relevant documentation**:
 
-| 忘れた内容 | 読むべきファイル |
-|-----------|-----------------|
-| プロジェクト全体の構成・要件 | `PROJECT_REQUIREMENTS.md`, `CLAUDE.md` |
-| システム設計・アーキテクチャ | `docs/01-system-design/` 配下 |
-| DB スキーマ・テーブル設計 | `docs/01-system-design/backend/database-schema.md` |
-| API 仕様 | `docs/01-system-design/backend/api-endpoints.md` |
-| マイクロサービス構成 | `docs/01-system-design/backend/microservices.md` |
-| フロントエンド画面設計 | `docs/01-system-design/frontend/screen-inventory.md` |
-| コーディング規約 | `docs/01-system-design/shared/conventions.md` |
-| バックエンド実装手順 | `docs/02-backend/` の該当フェーズ |
-| フロントエンド実装手順 | `docs/03-frontend/` の該当フェーズ |
-| 将来機能の仕様 | `docs/features/` 配下 |
+| Lost Context | File(s) to Re-read |
+|-------------|---------------------|
+| Overall project structure & requirements | `PROJECT_REQUIREMENTS.md`, `CLAUDE.md` |
+| System design & architecture | Files under `docs/01-system-design/` |
+| DB schema & table design | `docs/01-system-design/backend/database-schema.md` |
+| API specification | `docs/01-system-design/backend/api-endpoints.md` |
+| Microservice architecture | `docs/01-system-design/backend/microservices.md` |
+| Frontend screen design | `docs/01-system-design/frontend/screen-inventory.md` |
+| Coding conventions | `docs/01-system-design/shared/conventions.md` |
+| Backend implementation steps | Relevant phase under `docs/02-backend/` |
+| Frontend implementation steps | Relevant phase under `docs/03-frontend/` |
+| Future feature specs | Files under `docs/features/` |
 
-**「覚えている」「たぶん合っている」で作業を続行してはならない。** 不確かな場合は必ずドキュメントを確認すること。
+**You must NEVER continue working based on "I think I remember" or "it's probably correct."** If uncertain, always open and read the documentation.
 
-### 3. タスク開始時のチェックリスト
+### 3. Task Start Checklist
 
-新しいタスクを開始する際、以下の手順を**必ず**実行すること：
+When starting any new task, you **MUST** follow these steps in order:
 
-1. **関連 Skill を起動** — タスク種別に応じた Skill を `Skill` ツールで呼び出す
-2. **設計ドキュメントを確認** — `docs/01-system-design/` の該当ファイルを読む
-3. **フェーズガイドを確認** — `docs/02-backend/` または `docs/03-frontend/` の該当フェーズを読む
-4. **規約を確認** — `docs/01-system-design/shared/conventions.md` に従っているか確認する
-5. **実装を開始** — 上記を全て確認した上で初めてコードを書き始める
+1. **Invoke the relevant Skill** — Use the `Skill` tool to activate the appropriate skill for the task type
+2. **Read the design documents** — Read the relevant files under `docs/01-system-design/`
+3. **Read the phase guide** — Read the relevant phase under `docs/02-backend/` or `docs/03-frontend/`
+4. **Check conventions** — Verify compliance with `docs/01-system-design/shared/conventions.md`
+5. **Begin implementation** — Only start writing code after completing all steps above
 
 ---
 
 ## Important Notes
 
-1. **設計ドキュメントを先に読む** — 実装前に必ず `docs/01-system-design/` の該当ドキュメントを確認すること
-2. **フェーズガイドに従う** — `docs/02-backend/` と `docs/03-frontend/` のフェーズ別READMEに従って実装すること
-3. **すべてのUIテキストは日本語** — ボタン、ラベル、メッセージ、エラー表示等、すべて日本語で実装すること
-4. **将来機能の仕様は `docs/features/`** — Teams連携、ゲーミフィケーション、AI機能の仕様書が格納されている
-5. **共有ライブラリのパターンを変更しない** — `conventions.md` を確認せずに共有パターン（レスポンスラッパー、エラーフィルター、ガード等）を変更しないこと
-6. **論理削除を徹底** — `is_deleted` フラグによる論理削除を標準とし、物理削除は原則禁止
-7. **マイグレーションで管理** — `synchronize: true` は使用禁止。スキーマ変更は必ずマイグレーションで行う
+1. **Read design docs first** — Always review the relevant documents in `docs/01-system-design/` before implementation
+2. **Follow phase guides** — Follow the phase-specific READMEs in `docs/02-backend/` and `docs/03-frontend/`
+3. **All UI text in Japanese** — Buttons, labels, messages, error displays — everything must be in Japanese
+4. **Future feature specs in `docs/features/`** — Contains specs for Teams integration, gamification, AI features
+5. **Do not change shared library patterns** — Do not modify shared patterns (response wrappers, error filters, guards, etc.) without checking `conventions.md`
+6. **Enforce soft delete** — Use `is_deleted` flag for soft deletion; hard delete is strictly prohibited
+7. **Manage via migrations** — `synchronize: true` is forbidden; all schema changes must go through migrations
