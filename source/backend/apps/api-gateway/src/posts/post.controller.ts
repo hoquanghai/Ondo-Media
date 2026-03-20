@@ -1,4 +1,5 @@
 import { compressImage, generateThumbnail } from '../utils/media-processor';
+import { transcodeVideo, generateVideoThumbnail } from '../utils/video-processor';
 import {
   Body,
   Controller,
@@ -228,6 +229,40 @@ export class PostController {
             );
           } catch (e) {
             // If compression fails, upload original
+          }
+        }
+
+        // Compress videos using FFmpeg (max 1080p, H.264 MP4)
+        if (fileType === 'video') {
+          // For videos > 50MB: skip transcoding (too slow for inline processing)
+          if (uploadSize > 50 * 1024 * 1024) {
+            console.log(
+              `Video ${file.originalname} is ${Math.round(uploadSize / (1024 * 1024))}MB - ` +
+              `uploading original (async transcoding recommended for large files)`,
+            );
+          } else {
+            try {
+              const transcoded = await transcodeVideo(file.buffer, file.originalname);
+              uploadBuffer = transcoded.buffer;
+              uploadSize = transcoded.size;
+              uploadMimeType = transcoded.mimeType;
+              ext = transcoded.ext;
+            } catch (e) {
+              console.error('Video transcoding failed, uploading original:', e);
+              // If transcoding fails, upload original
+            }
+          }
+
+          // Generate and upload thumbnail regardless of transcoding
+          try {
+            const thumb = await generateVideoThumbnail(file.buffer);
+            const thumbKey = `posts/${post.id}/thumb_${uuidv4()}.${thumb.ext}`;
+            await this.minioClient.putObject(
+              this.bucket, thumbKey, thumb.buffer, thumb.size,
+              { 'Content-Type': thumb.mimeType },
+            );
+          } catch (e) {
+            console.error('Video thumbnail generation failed:', e);
           }
         }
 

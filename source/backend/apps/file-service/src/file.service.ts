@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { FileRecord } from '@app/database';
 import { MinioService } from './minio.service';
 import { ImageProcessorService } from './image-processor.service';
+import { VideoProcessorService } from './video-processor.service';
 import { FileValidatorService } from './file-validator.service';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class FileService {
     private readonly fileRepo: Repository<FileRecord>,
     private readonly minio: MinioService,
     private readonly imageProcessor: ImageProcessorService,
+    private readonly videoProcessor: VideoProcessorService,
     private readonly validator: FileValidatorService,
   ) {}
 
@@ -55,9 +57,24 @@ export class FileService {
       }
     }
 
-    // Videos: skip compression for MVP, just upload original
+    // Process videos: transcode to H.264 MP4, max 1080p
     if (category === 'video') {
-      this.logger.log('Video upload: storing original (compression skipped for MVP)');
+      try {
+        uploadBuffer = Buffer.from(await this.videoProcessor.compress(buffer));
+        contentType = 'video/mp4';
+        isCompressed = true;
+
+        // Generate video thumbnail
+        const thumbnail = await this.videoProcessor.generateThumbnail(buffer);
+        thumbnailKey = `thumbnails/${fileId}.jpg`;
+        await this.minio.upload(thumbnailKey, thumbnail, 'image/jpeg');
+      } catch (err) {
+        this.logger.warn(`Video compression failed, uploading original: ${err}`);
+        // Fall back to original
+        uploadBuffer = buffer;
+        contentType = data.mimeType;
+        isCompressed = false;
+      }
     }
 
     // Upload to MinIO

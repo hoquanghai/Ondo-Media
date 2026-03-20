@@ -6,6 +6,7 @@ import { FileController } from './file.controller';
 import { FileService } from './file.service';
 import { MinioService } from './minio.service';
 import { ImageProcessorService } from './image-processor.service';
+import { VideoProcessorService } from './video-processor.service';
 import { FileValidatorService } from './file-validator.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { FileValidatorService } from './file-validator.service';
     FileService,
     MinioService,
     ImageProcessorService,
+    VideoProcessorService,
     FileValidatorService,
   ],
 })
