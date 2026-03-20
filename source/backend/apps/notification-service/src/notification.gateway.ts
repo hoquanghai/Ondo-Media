@@ -10,9 +10,13 @@ import { Server, Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
 @WebSocketGateway({
-  cors: { origin: '*', credentials: true },
+  cors: {
+    origin: process.env.CORS_ORIGINS?.split(',') ?? ['http://localhost:3001'],
+    credentials: true,
+  },
 })
 export class NotificationGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -50,43 +54,39 @@ export class NotificationGateway
     }
   }
 
-  handleConnection(client: Socket) {
-    // Extract userId from JWT token (base64 decode, no verification needed - API gateway already verifies)
-    let userId: string | undefined;
-
-    const token = client.handshake.auth?.token as string | undefined;
-    if (token) {
-      try {
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-          userId = String(payload.sub ?? payload.userId ?? payload.shainBangou);
-        }
-      } catch {
-        this.logger.warn(`Failed to decode JWT token for client ${client.id}`);
+  async handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth?.token as string | undefined;
+      if (!token) {
+        this.logger.warn(`Client ${client.id} connected without token, disconnecting`);
+        client.disconnect();
+        return;
       }
-    }
 
-    // Fallback to query param
-    if (!userId || userId === 'undefined') {
-      userId = client.handshake.query.userId as string;
-    }
+      // Verify JWT signature (not just decode)
+      const secret = this.config.get<string>('JWT_SECRET', '');
+      const payload = jwt.verify(token, secret) as any;
+      const userId = String(payload.sub);
 
-    if (!userId) {
-      this.logger.warn(`Client ${client.id} connected without userId, disconnecting`);
+      if (!userId || userId === 'undefined') {
+        this.logger.warn(`Client ${client.id} token missing sub claim, disconnecting`);
+        client.disconnect();
+        return;
+      }
+
+      // Track user -> socket mapping
+      if (!this.userSockets.has(userId)) {
+        this.userSockets.set(userId, new Set());
+      }
+      this.userSockets.get(userId)!.add(client.id);
+
+      // Join user-specific room
+      client.join(`user:${userId}`);
+      this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
+    } catch (error) {
+      this.logger.warn(`Client ${client.id} JWT verification failed, disconnecting`);
       client.disconnect();
-      return;
     }
-
-    // Track user -> socket mapping
-    if (!this.userSockets.has(userId)) {
-      this.userSockets.set(userId, new Set());
-    }
-    this.userSockets.get(userId)!.add(client.id);
-
-    // Join user-specific room
-    client.join(`user:${userId}`);
-    this.logger.log(`Client connected: ${client.id} (user: ${userId})`);
   }
 
   handleDisconnect(client: Socket) {

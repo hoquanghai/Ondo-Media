@@ -24,15 +24,17 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('コープネット API')
-    .setDescription('社内SNSシステム API ドキュメント')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger (disabled in production)
+  if (process.env.APP_ENV !== 'production') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('コープネット API')
+      .setDescription('社内SNSシステム API ドキュメント')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   const port = process.env.APP_PORT ?? 3000;
   await app.listen(port);

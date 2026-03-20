@@ -16,6 +16,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private loginAttempts = new Map<number, { count: number; lockedUntil: number }>();
 
   constructor(
     @InjectRepository(User)
@@ -42,6 +43,12 @@ export class AuthService {
   }): Promise<AuthResponseDto> {
     const { lastNumber, password, rememberMe } = data;
 
+    // Rate limit: check for too many failed attempts
+    const attempts = this.loginAttempts.get(lastNumber);
+    if (attempts && attempts.lockedUntil > Date.now()) {
+      throw new UnauthorizedException('ログイン試行回数が上限を超えました。5分後に再試行してください。');
+    }
+
     this.logger.log(`Login attempt: lastNumber=${lastNumber}, type=${typeof lastNumber}`);
 
     // Raw query to avoid TypeORM cross-database issues
@@ -54,6 +61,14 @@ export class AuthService {
     this.logger.log(`Found user: ${user ? `shainBangou=${user.shainBangou}, name=${user.shainName}, lastNumber=${user.lastNumber}` : 'null'}`);
 
     if (!user) {
+      // Increment failed attempts for unknown user
+      const current = this.loginAttempts.get(lastNumber) || { count: 0, lockedUntil: 0 };
+      current.count++;
+      if (current.count >= 5) {
+        current.lockedUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
+        current.count = 0;
+      }
+      this.loginAttempts.set(lastNumber, current);
       throw new UnauthorizedException(
         '社員番号が正しくありません',
       );
@@ -83,11 +98,22 @@ export class AuthService {
       // Validate password
       const isValid = await bcrypt.compare(password!, user.snsPasswordHash);
       if (!isValid) {
+        // Increment failed attempts on wrong password
+        const current = this.loginAttempts.get(lastNumber) || { count: 0, lockedUntil: 0 };
+        current.count++;
+        if (current.count >= 5) {
+          current.lockedUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
+          current.count = 0;
+        }
+        this.loginAttempts.set(lastNumber, current);
         throw new UnauthorizedException(
           '社員番号またはパスワードが正しくありません',
         );
       }
     }
+
+    // Clear failed login attempts on success
+    this.loginAttempts.delete(lastNumber);
 
     // Update sns_last_login_at
     await this.userRepo.update(

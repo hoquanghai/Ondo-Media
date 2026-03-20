@@ -92,10 +92,16 @@ export class UserController {
     @CurrentUser() user: any,
     @Body() body: Record<string, any>,
   ) {
+    // Whitelist allowed fields - prevent setting sensitive fields
+    const allowed = ['shainName', 'email', 'phone', 'mobile', 'birthday', 'address1', 'snsBio', 'snsAvatarUrl'];
+    const sanitized: Record<string, any> = {};
+    for (const key of allowed) {
+      if (body[key] !== undefined) sanitized[key] = body[key];
+    }
     return firstValueFrom(
       this.userClient.send(MESSAGE_PATTERNS.USER_UPDATE_PROFILE, {
         id: user.shainBangou,
-        ...body,
+        ...sanitized,
       }),
     );
   }
@@ -103,7 +109,9 @@ export class UserController {
   // ─── Upload avatar ───
 
   @Post('me/avatar')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  }))
   async uploadAvatar(
     @CurrentUser() user: any,
     @UploadedFile() file: Express.Multer.File,

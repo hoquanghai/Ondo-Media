@@ -7,13 +7,14 @@ import { AccessTokenPayload } from '../token.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(config: ConfigService) {
+    const secret = config.get<string>('JWT_SECRET');
+    if (!secret || secret === 'change-me-to-a-real-secret') {
+      console.warn('WARNING: JWT_SECRET is not set or is using default value. Set a strong secret in .env');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>(
-        'JWT_SECRET',
-        'default-jwt-secret-change-in-production',
-      ),
+      secretOrKey: secret || 'dev-only-not-for-production-' + Date.now(),
     });
   }
 

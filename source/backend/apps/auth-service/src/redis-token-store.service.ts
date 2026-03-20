@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class RedisTokenStore implements OnModuleInit, OnModuleDestroy {
@@ -48,15 +49,9 @@ export class RedisTokenStore implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Use a simple hash of the token as the key to avoid storing full tokens in Redis.
-   * For short tokens or development, we use a truncated version.
+   * Use SHA-256 hash of the token as the key to avoid storing full tokens in Redis.
    */
   private hashToken(token: string): string {
-    // Use last 32 chars of the token as a unique identifier
-    // In production, consider using a proper hash function
-    if (token.length > 32) {
-      return token.slice(-32);
-    }
-    return token;
+    return crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
   }
 }
